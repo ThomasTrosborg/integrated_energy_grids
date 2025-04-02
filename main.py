@@ -1,5 +1,6 @@
 import pandas as pd
 import pypsa
+from data_loader import DataLoader
 
 def annuity(n,r):
     """ Calculate the annuity factor for an asset with lifetime n years and
@@ -10,43 +11,88 @@ def annuity(n,r):
     else:
         return 1/n
 
+def create_network(data: DataLoader):
+    # Create a new PyPSA network
+    network = pypsa.Network()
+    network.set_snapshots(data.dates.values)
 
-class DataLoader:
-    def __init__(self, country: str = 'ESP'):
-        self.country = country
-        self.dates = pd.date_range('2015-01-01 00:00Z', '2015-12-31 23:00Z', freq='h')
-        self.p_d = self.read_electricity_demand()
-        self.p_onw = self.read_onshore_wind()
-        self.p_solar = self.read_solar()
+    # add the different carriers, only gas emits CO2
+    network.add("Carrier", "gas", co2_emissions=0.19) # in t_CO2/MWh_th
+    network.add("Carrier", "electricity", co2_emissions=0)
+    network.add("Carrier", "onshorewind")
+    network.add("Carrier", "offshorewind")
+    network.add("Carrier", "solar")
 
-    def read_electricity_demand(self):
-        """ Read electricity demand data from CSV file """
+    # add the electricity bus
+    network.add("Bus", "electricity bus", carrier="electricity")
 
-        df_elec = pd.read_csv('data/electricity_demand.csv', sep=';', index_col=0)
-        df_elec.index = pd.to_datetime(df_elec.index)
+    # add onshore wind generator
+    capital_cost_onshorewind = annuity(30, data.r)*910000*(1+0.033) # in €/MW
+    network.add(
+        "Generator",
+        "onshorewind",
+        bus="electricity bus",
+        p_nom_extendable=True,
+        carrier="onshorewind",
+        #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
+        capital_cost = capital_cost_onshorewind,
+        marginal_cost = 0,
+        p_max_pu = data.cf_onw.values,
+    )
 
-        self.p_d = df_elec[self.country][self.dates]
+    # add offshore wind generator
+    capital_cost_offshorewind = annuity(25, data.r)*2506000*(1+0.03) # in €/MW
+    network.add(
+        "Generator",
+        "offshorewind",
+        bus="electricity bus",
+        p_nom_extendable=True,
+        carrier="offshorewind",
+        #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
+        capital_cost = capital_cost_offshorewind,
+        marginal_cost = 0,
+        p_max_pu = data.cf_onw.values, #TODO use offshore wind data
+    )
 
-    def read_onshore_wind(self):
-        """ Read onshore wind data from CSV file """
+    # add solar PV generator
+    capital_cost_solar = annuity(25,data.r)*425000*(1+0.03) # in €/MW
+    network.add(
+        "Generator",
+        "solar",
+        bus="electricity bus",
+        p_nom_extendable=True,
+        carrier="solar",
+        #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
+        capital_cost = capital_cost_solar,
+        marginal_cost = 0,
+        p_max_pu = data.cf_solar.values,
+    )
 
-        df_onshorewind = pd.read_csv('data/onshore_wind_1979-2017.csv', sep=';', index_col=0)
-        df_onshorewind.index = pd.to_datetime(df_onshorewind.index)
+    # add OCGT (Open Cycle Gas Turbine) generator
+    capital_cost_OCGT = annuity(25, data.r)*560000*(1+0.033) # in €/MW
+    fuel_cost = 21.6 # in €/MWh_th
+    efficiency = 0.39 # MWh_elec/MWh_th
+    marginal_cost_OCGT = fuel_cost/efficiency # in €/MWh_el
+    network.add(
+        "Generator",
+        "OCGT",
+        bus="electricity bus",
+        p_nom_extendable=True,
+        carrier="gas",
+        #p_nom_max=1000,
+        capital_cost = capital_cost_OCGT,
+        marginal_cost = marginal_cost_OCGT,
+    )
 
-        self.cf_onw = df_onshorewind[self.country][self.dates]
-
-    def read_solar(self):
-        """ Read solar data from CSV file """
-
-        df_solar = pd.read_csv('data/pv_optimal.csv', sep=';', index_col=0)
-        df_solar.index = pd.to_datetime(df_solar.index)
-
-        self.cf_solar = df_solar[self.country][self.dates]
+    return network
 
 
-data = DataLoader(country="ESP")
+if __name__ == "__main__":
 
-# Create a new PyPSA network
-network = pypsa.Network()
+    data = DataLoader(country="ESP", discount_rate=0.07)
 
-network.set_snapshots(data.dates.values)
+    # Create the network
+    network = create_network(data)
+    network.optimize()
+
+    print(0)
