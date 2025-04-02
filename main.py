@@ -1,6 +1,7 @@
 import pandas as pd
 import pypsa
 from data_loader import DataLoader
+import results_plotter as plot
 
 def annuity(n,r):
     """ Calculate the annuity factor for an asset with lifetime n years and
@@ -23,8 +24,16 @@ def create_network(data: DataLoader):
     network.add("Carrier", "offshorewind")
     network.add("Carrier", "solar")
 
-    # add the electricity bus
+     # add the electricity bus
     network.add("Bus", "electricity bus", carrier="electricity")
+
+    # add load to the bus
+    network.add(
+        "Load",
+        "load",
+        bus="electricity bus",
+        p_set=data.p_d.values
+    )
 
     # add onshore wind generator
     capital_cost_onshorewind = annuity(30, data.r)*910000*(1+0.033) # in €/MW
@@ -94,5 +103,8 @@ if __name__ == "__main__":
     # Create the network
     network = create_network(data)
     network.optimize()
+
+    plot.plot_series(network)
+    plot.plot_electricity_mix(network)
 
     print(0)

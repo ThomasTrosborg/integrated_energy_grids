@@ -5,10 +5,10 @@ class DataLoader:
         self.country = country
         self.dates = pd.date_range('2015-01-01 00:00Z', '2015-12-31 23:00Z', freq='h')
         self.r = discount_rate
-        self.p_d = self.read_electricity_demand()
-        self.p_onw = self.read_onshore_wind()
-        # self.p_offw = self.read_offshore_wind()
-        self.p_solar = self.read_solar()
+        self.read_electricity_demand()
+        self.read_onshore_wind()
+        # self.read_offshore_wind()
+        self.read_solar()
 
     def read_electricity_demand(self):
         """ Read electricity demand data from CSV file """
