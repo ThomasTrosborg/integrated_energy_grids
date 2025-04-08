@@ -2,6 +2,8 @@ import pandas as pd
 import pypsa
 from data_loader import DataLoader
 import results_plotter as plot
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="pypsa")
 
 def annuity(n,r):
     """ Calculate the annuity factor for an asset with lifetime n years and
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     network = create_network(data)
     network.optimize()
 
-    plot.plot_series(network)
-    plot.plot_electricity_mix(network)
-
+    plot.plot_series(network, filename="series.png")
+    plot.plot_electricity_mix(network, filename="electricity_mix.png")
+    plot.plot_duration_curves(network, filename="duration_curves.png")
     print(0)
