@@ -106,7 +106,8 @@ if __name__ == "__main__":
     network = create_network(data)
     network.optimize()
 
-    plot.plot_series(network, filename="series.png")
-    plot.plot_electricity_mix(network, filename="electricity_mix.png")
-    plot.plot_duration_curves(network, filename="duration_curves.png")
+    plot.plot_series(network, ts=180*24) #, filename="series_summer.png")
+    plot.plot_series(network, ts=0) #, filename="series_winter.png")
+    plot.plot_electricity_mix(network) #, filename="electricity_mix.png")
+    plot.plot_duration_curves(network) #, filename="duration_curves.png")
     print(0)

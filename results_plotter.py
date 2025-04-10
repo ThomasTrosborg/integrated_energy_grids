@@ -7,7 +7,7 @@ def save_figure(filename):
     plt.tight_layout()
     plt.savefig(filepath, dpi=300)
 
-def plot_series(network, ts: int = 180*24, filename: str = None):
+def plot_series(network, 0, filename: str = None):
     te = ts + 96
     plt.plot(network.loads_t.p['load'][ts:te], color='black', label='demand')
     plt.plot(network.generators_t.p['onshorewind'][ts:te], color='blue', label='onshore wind')
