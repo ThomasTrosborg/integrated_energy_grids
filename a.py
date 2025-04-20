@@ -22,8 +22,8 @@ def create_network(data: DataLoader):
     # add the different carriers, only gas emits CO2
     network.add("Carrier", "gas", co2_emissions=0.19) # in t_CO2/MWh_th
     network.add("Carrier", "electricity", co2_emissions=0)
-    network.add("Carrier", "onshorewind")
-    network.add("Carrier", "offshorewind")
+    network.add("Carrier", "onshore wind")
+    network.add("Carrier", "offshore wind")
     network.add("Carrier", "solar")
 
      # add the electricity bus
@@ -41,10 +41,10 @@ def create_network(data: DataLoader):
     capital_cost_onshorewind = annuity(30, data.r)*910000*(1+0.033) # in €/MW
     network.add(
         "Generator",
-        "onshorewind",
+        "onshore wind",
         bus="electricity bus",
         p_nom_extendable=True,
-        carrier="onshorewind",
+        carrier="onshore wind",
         #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
         capital_cost = capital_cost_onshorewind,
         marginal_cost = 0,
@@ -55,10 +55,10 @@ def create_network(data: DataLoader):
     capital_cost_offshorewind = annuity(25, data.r)*2506000*(1+0.03) # in €/MW
     network.add(
         "Generator",
-        "offshorewind",
+        "offshore wind",
         bus="electricity bus",
         p_nom_extendable=True,
-        carrier="offshorewind",
+        carrier="offshore wind",
         #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
         capital_cost = capital_cost_offshorewind,
         marginal_cost = 0,
@@ -106,8 +106,7 @@ if __name__ == "__main__":
     network = create_network(data)
     network.optimize()
 
-    plot.plot_series(network, ts=180*24) #, filename="series_summer.png")
-    plot.plot_series(network, ts=0) #, filename="series_winter.png")
-    plot.plot_electricity_mix(network) #, filename="electricity_mix.png")
-    plot.plot_duration_curves(network) #, filename="duration_curves.png")
-    print(0)
+    plot.plot_series(network, ts=180*24) #, filename="a_series_summer.png")
+    plot.plot_series(network, ts=0) #, filename="a_series_winter.png")
+    plot.plot_electricity_mix(network) #, filename="a_electricity_mix.png")
+    plot.plot_duration_curves(network) #, filename="a_duration_curves.png")

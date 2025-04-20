@@ -14,8 +14,8 @@ network = create_network(data)
 network.optimize.create_model()
 # Spain's CO2 emissions data: https://www.iea.org/countries/spain/emissions
 # It is at 49 MT CO2 in 2022, down from 118 MT in 2007. Was at 40 MT in 2020.
-n_opts = 9
-co2_limits = np.append(np.array([50e6]), np.linspace(20e6, 0, n_opts)) #tonCO2
+n_opts = 10
+co2_limits = np.append(np.array([50e6]), np.linspace(20e6, 0, n_opts-1)) #tonCO2
 
 mixes = []
 
