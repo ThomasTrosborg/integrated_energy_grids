@@ -46,3 +46,8 @@ class DataLoader:
 
         self.cf_solar = df_solar[self.country][self.weather_dates]
         self.cf_solar = self.cf_solar[~((self.cf_solar.index.month == 2) & (self.cf_solar.index.day == 29))]
+    
+    def read_hydro_capacities(self):
+        """ Read hydro data from CSV file """
+
+        df_hydro_capacities
