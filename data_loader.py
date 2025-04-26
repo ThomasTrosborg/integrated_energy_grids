@@ -22,7 +22,7 @@ class DataLoader:
         df_elec = pd.read_csv(self.path + 'data/electricity_demand.csv', sep=';', index_col=0)
         df_elec.index = pd.to_datetime(df_elec.index)
 
-        self.p_d = df_elec[[self.country]+self.neighbors][self.dates]
+        self.p_d = df_elec[[self.country]+self.neighbors].loc[self.dates]
 
     def read_onshore_wind(self):
         """ Read onshore wind data from CSV file """
@@ -30,19 +30,10 @@ class DataLoader:
         df_onshorewind.index = pd.to_datetime(df_onshorewind.index)
 
 
-        self.cf_onw = df_onshorewind[self.country][self.weather_dates]
-        self.cf_onw = self.cf_onw[~((self.cf_onw.index.month == 2) & (self.cf_onw.index.day == 29))]
-        
-    def read_solar(self):
-        """ Read solar data from CSV file """
+        df_onshorewind = df_onshorewind[[self.country]+self.neighbors].loc[self.weather_dates]
+        self.cf_onw = df_onshorewind[~((df_onshorewind.index.month == 2) & (df_onshorewind.index.day == 29))]
 
-        df_solar = pd.read_csv(self.path + 'data/pv_optimal.csv', sep=';', index_col=0)
-        df_solar.index = pd.to_datetime(df_solar.index)
-
-        self.cf_solar = df_solar[self.country][self.weather_dates]
-        self.cf_solar = self.cf_solar[~((self.cf_solar.index.month == 2) & (self.cf_solar.index.day == 29))]
-
-    def read_hydro_inflows(self):
+    def read_hydro(self):
         """Read hydro data from CSV file and expand it to hourly resolution for 2013–2022"""
 
         # Load CSV and parse date
@@ -88,7 +79,16 @@ class DataLoader:
     #     df_offshorewind.index = pd.to_datetime(df_offshorewind.index)
 
     #     self.cf_offw = df_offshorewind[self.country][self.dates]
-    
+
+    def read_solar(self):
+        """ Read solar data from CSV file """
+
+        df_solar = pd.read_csv(self.path + 'data/pv_optimal.csv', sep=';', index_col=0)
+        df_solar.index = pd.to_datetime(df_solar.index)
+
+        df_solar = df_solar[[self.country]+self.neighbors].loc[self.weather_dates]
+        self.cf_onw = df_solar[~((df_solar.index.month == 2) & (df_solar.index.day == 29))]
+
     def read_hydro_capacities(self):
         """ Read hydro data from CSV file """
 

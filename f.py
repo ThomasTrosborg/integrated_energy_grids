@@ -37,7 +37,6 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         carrier="nuke",
         marginal_cost=0,
     )
-    
 
     return network
 
