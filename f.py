@@ -7,7 +7,7 @@ from d import add_storage
 import results_plotter as plot
 
 def add_neighbors(network: pypsa.Network, data: DataLoader):
-    
+    length = {"FRA": 400, "PRT": 90} # km
     for neighbor in data.neighbors:
         network.add("Bus", neighbor)
         network.add(
@@ -17,8 +17,8 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             bus1=neighbor,
             p_nom_extendable=True, # capacity is optimised
             p_min_pu=-1,
-            length=600, # length (in km) between country a and country b
-            capital_cost=400*600, # capital cost * length
+            length=length[neighbor], # length [km] between country a and country b
+            capital_cost=400*length[neighbor], # capital cost [EUR/(MW*km)] * length [km]
         )
 
         network.add(
