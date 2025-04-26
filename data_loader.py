@@ -13,7 +13,8 @@ class DataLoader:
         self.read_onshore_wind()
         # self.read_offshore_wind()
         self.read_solar()
-        self.read_hydro()
+        self.read_hydro_capacities()
+        self.read_hydro_inflows()
 
     def read_electricity_demand(self):
         """ Read electricity demand data from CSV file """
@@ -27,6 +28,7 @@ class DataLoader:
         """ Read onshore wind data from CSV file """
         df_onshorewind = pd.read_csv(self.path + 'data/onshore_wind_1979-2017.csv', sep=';', index_col=0)
         df_onshorewind.index = pd.to_datetime(df_onshorewind.index)
+
 
         df_onshorewind = df_onshorewind[[self.country]+self.neighbors][self.weather_dates]
         self.cf_onw = df_onshorewind[~((df_onshorewind.index.month == 2) & (df_onshorewind.index.day == 29))]
@@ -47,7 +49,7 @@ class DataLoader:
         daily_values.index = pd.date_range(
             start=df_hydro.index.min(),
             periods=len(daily_values),
-            freq='H',
+            freq='h',
             tz='UTC'
         )
         daily_values['Inflow [GWh]'] /= 24
@@ -56,7 +58,7 @@ class DataLoader:
         target_index = pd.date_range(
             start='2013-01-01 00:00:00',
             end='2023-01-01 23:00:00',
-            freq='H',
+            freq='h',
             tz='UTC'
         )
         num_hours_needed = len(target_index)
@@ -65,10 +67,10 @@ class DataLoader:
         full_inflow = pd.Series(hourly_cycle.tolist() * repeats, index=target_index)[:num_hours_needed]
 
         #Create final DataFrame with correct hourly index
-        df_expanded = pd.DataFrame({'Inflow [GWh]': full_inflow})
+        df_expanded = pd.DataFrame({'Inflow [MWh]': full_inflow*1000}) # Convert GWh to MWh
         df_expanded.index.name = 'datetime'
 
-        self.cf_hydro = df_expanded.loc[self.dates]
+        self.cf_hydro = df_expanded.loc[self.dates, 'Inflow [MWh]'] # Select only the dates we need
     
     # def read_offshore_wind(self):
     #     """ Read offshore wind data from CSV file """
@@ -84,10 +86,34 @@ class DataLoader:
         df_solar = pd.read_csv(self.path + 'data/pv_optimal.csv', sep=';', index_col=0)
         df_solar.index = pd.to_datetime(df_solar.index)
 
-        df_solar = df_solar[[self.country]+self.neighbors][self.weather_dates]
-        self.cf_solar = df_solar[~((df_solar.index.month == 2) & (df_solar.index.day == 29))]
+        df_onshorewind = df_onshorewind[[self.country]+self.neighbors][self.weather_dates]
+        self.cf_onw = df_onshorewind[~((df_onshorewind.index.month == 2) & (df_onshorewind.index.day == 29))]
 
     def read_hydro_capacities(self):
         """ Read hydro data from CSV file """
 
-        df_hydro_capacities
+        df_hydro_capacities = pd.read_csv(self.path + 'data/jrc-hydro-power-plant-database.csv', sep=',')
+        df_hydro_capacities = df_hydro_capacities[df_hydro_capacities['country_code'] == self.country[:2]]
+        df_hydro_capacities = df_hydro_capacities[['installed_capacity_MW', 'type', 'storage_capacity_MWh']]
+        pumped_hydro_power = df_hydro_capacities[df_hydro_capacities['type'] == 'HPHS']['installed_capacity_MW'].sum()
+        pumped_hydro_storage = df_hydro_capacities[df_hydro_capacities['type'] == 'HPHS']['storage_capacity_MWh'].sum()
+        run_of_river_power = df_hydro_capacities[df_hydro_capacities['type'] == 'HROR']['installed_capacity_MW'].sum()
+        dammed_hydro_power = df_hydro_capacities[df_hydro_capacities['type'] == 'HDAM']['installed_capacity_MW'].sum()
+        dammed_hydro_storage = df_hydro_capacities[df_hydro_capacities['type'] == 'HDAM']['storage_capacity_MWh'].sum()
+        self.hydro_capacities = pd.DataFrame({
+            'pumped_hydro_power': [pumped_hydro_power],
+            'pumped_hydro_storage': [pumped_hydro_storage],
+            'run_of_river_power': [run_of_river_power],
+            'dammed_hydro_power': [dammed_hydro_power],
+            'dammed_hydro_storage': [dammed_hydro_storage]
+        }) # Create DataFrame with hydro capacities in MW and MWh
+        self.hydro_capacities.index = [self.country] # Set index to country code
+
+if __name__ == "__main__":
+    data = DataLoader(country="ESP", discount_rate=0.07)
+    print(data.p_d.head())
+    print(data.cf_onw.head())
+    # print(data.cf_offw.head())
+    print(data.cf_solar.head())
+    print(data.hydro_capacities.head())
+    print(data.cf_hydro.head())

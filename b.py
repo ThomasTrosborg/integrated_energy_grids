@@ -25,7 +25,12 @@ def simulate_tests(network: pypsa.Network, n_opts: int = 10):
     for co2_limit in co2_limits:
         network = add_co2_constraint(network, co2_limit)
         network.optimize()
-        mixes += [[network.generators_t.p[label].sum() for label in plot.LABELS]]
+        mix = []
+        for ix, gen in enumerate(plot.REFERENCES['GENERATORS']):
+            mix += [network.generators_t.p[gen].sum()]
+        for ix, link in enumerate(plot.REFERENCES['LINKS']):
+            mix += [-network.links_t.p1[link].sum()]
+        mixes += [mix]
 
     plot.plot_generation_mixes(mixes, co2_limits, filename="b_co2_limit.png")
 

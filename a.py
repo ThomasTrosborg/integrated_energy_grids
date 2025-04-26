@@ -95,6 +95,33 @@ def create_network(data: DataLoader):
         marginal_cost = marginal_cost_OCGT,
     )
 
+    # Dammed hydro generator as a run of river generator. This is a simplification.
+    # In reality, dammed hydro can store energy and is therefore a storage generator.
+    # We will introduce this in the following exercises.
+    network.add("Carrier", "Water")
+    network.add("Bus", "DamWater", carrier = "Water")
+    network.add( # The inflow of rainwater to the dam is modeled as a generator
+        "Generator",
+        "Rain to DamWater",
+        bus = "DamWater",
+        p_nom = max(data.cf_hydro.values),
+        carrier = "Water",
+        capital_cost = 0,
+        marginal_cost = 0,
+        p_max_pu = data.cf_hydro.values/max(data.cf_hydro.values),
+    )
+    capital_cost_hydro = annuity(80, data.r)*2000000*(1+0.01) # in €/MW
+    network.add(
+        "Link",
+        "HDAM",
+        bus0="DamWater",
+        bus1="electricity bus",
+        p_nom=data.hydro_capacities['dammed_hydro_power'].values[0],
+        capital_cost = capital_cost_hydro,
+        marginal_cost = 0,
+        efficiency = 0.95, # MWh_elec/MWh_potential_energy
+    )
+    
     return network
 
 

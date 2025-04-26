@@ -4,7 +4,18 @@ import numpy as np
 import pypsa
 from typing import List, Tuple
 
-LABELS = ['onshore wind', 'solar', 'OCGT']
+REFERENCES  = {'GENERATORS' : ['onshore wind', 'solar', 'OCGT'],
+               'LINKS'      : ['HDAM'],
+               'LOADS'      : ['load']
+               }
+COLORS      = {'GENERATORS' : ['green', 'orange', 'brown'],
+               'LINKS'      : ['blue'],
+               'LOADS'      : ['black']
+               }
+LABELS      = {'GENERATORS' : ['Onshore Wind', 'Solar', 'Gas (OCGT)'],
+               'LINKS'      : ['Hydro (Dam)'],
+               'LOADS'      : ['Demand']
+               }
 
 def save_figure(filename):
     filepath = str(pathlib.Path(__file__).parent.resolve()) + "/results/" + filename
@@ -13,10 +24,12 @@ def save_figure(filename):
 
 def plot_series(network, ts: int = 0, filename: str | None = None):
     te = ts + 96
-    plt.plot(network.loads_t.p['load'][ts:te], color='black', label='demand')
-    plt.plot(network.generators_t.p['onshore wind'][ts:te], color='blue', label='onshore wind')
-    plt.plot(network.generators_t.p['solar'][ts:te], color='orange', label='solar')
-    plt.plot(network.generators_t.p['OCGT'][ts:te], color='brown', label='gas (OCGT)')
+    for ix, load in enumerate(REFERENCES['LOADS']):
+        plt.plot(network.loads_t.p[load][ts:te], color=COLORS['LOADS'][ix], label=LABELS['LOADS'][ix])
+    for ix, gen in enumerate(REFERENCES['GENERATORS']):
+        plt.plot(network.generators_t.p[gen][ts:te], color=COLORS['GENERATORS'][ix], label=LABELS['GENERATORS'][ix])
+    for ix, link in enumerate(REFERENCES['LINKS']):
+        plt.plot(-network.links_t.p1[link][ts:te], color=COLORS['LINKS'][ix], label=LABELS['LINKS'][ix])
     plt.legend(fancybox=True, shadow=True, loc='best')
     plt.xlabel("Time")
     plt.ylabel("MW")
@@ -27,16 +40,24 @@ def plot_series(network, ts: int = 0, filename: str | None = None):
     plt.show()
 
 def plot_electricity_mix(network, filename: str | None = None):
-    sizes = [network.generators_t.p['onshore wind'].sum(),
-            network.generators_t.p['solar'].sum(),
-            network.generators_t.p['OCGT'].sum()]
-
-    colors=['blue', 'orange', 'brown']
+    # Plot the electricity mix
+    sizes = []
+    colors = []
+    labels = []
+    for ix, gen in enumerate(REFERENCES['GENERATORS']):
+        sizes += [network.generators_t.p[gen].sum()]
+        colors += [COLORS['GENERATORS'][ix]]
+        labels += [LABELS['GENERATORS'][ix]]
+    for ix, link in enumerate(REFERENCES['LINKS']):
+        sizes += [-network.links_t.p1[link].sum()]
+        colors += [COLORS['LINKS'][ix]]
+        labels += [LABELS['LINKS'][ix]]
 
     plt.pie(sizes,
             colors=colors,
-            labels=LABELS,
-            wedgeprops={'linewidth':0})
+            labels=labels,
+            wedgeprops={'linewidth':0},
+            autopct='%1.1f%%',)
     plt.axis('equal')
 
     plt.title('Electricity mix')
@@ -46,15 +67,27 @@ def plot_electricity_mix(network, filename: str | None = None):
     plt.show()
 
 def plot_duration_curves(network, filename: str | None = None):
-    dur_curves = [network.generators_t.p[label].sort_values(ascending=False).values for label in LABELS]
-    # capacities = [network.generators_t.p_nom_opt[label] for label in LABELS]
-    colors=['blue', 'orange', 'brown']
+    dur_curves = []
+    colors = []
+    labels = []
+    for ix, load in enumerate(REFERENCES['LOADS']):
+        dur_curves += [network.loads_t.p[load].sort_values(ascending=False).values]
+        colors += [COLORS['LOADS'][ix]]
+        labels += [LABELS['LOADS'][ix]]
+    for ix, gen in enumerate(REFERENCES['GENERATORS']):
+        dur_curves += [network.generators_t.p[gen].sort_values(ascending=False).values]
+        colors += [COLORS['GENERATORS'][ix]]
+        labels += [LABELS['GENERATORS'][ix]]
+    for ix, link in enumerate(REFERENCES['LINKS']):
+        dur_curves += [-network.links_t.p1[link].sort_values(ascending=False).values]
+        colors += [COLORS['LINKS'][ix]]
+        labels += [LABELS['LINKS'][ix]]
     
-    for ix in range(len(LABELS)):
-        plt.plot(range(len(dur_curves[ix])), dur_curves[ix],
-                color=colors[ix],
-                label=LABELS[ix])
-    plt.plot(range(len(dur_curves[ix])), network.loads_t.p['load'].sort_values(ascending=False).values, color='black', label='demand')
+    for ix in range(len(dur_curves)):
+        plt.plot(range(len(dur_curves[ix])),
+                 dur_curves[ix],
+                 color=colors[ix],
+                 label=labels[ix])
 
     plt.title('Duration Curves')
     plt.legend()
@@ -66,9 +99,17 @@ def plot_duration_curves(network, filename: str | None = None):
     plt.show()
 
 def plot_generation_mixes(network_sols, co2_limits, filename: str | None = None):
-    colors=['blue', 'orange', 'brown']
+    colors = []
+    labels = []
+    for ix, gen in enumerate(REFERENCES['GENERATORS']):
+        colors += [COLORS['GENERATORS'][ix]]
+        labels += [LABELS['GENERATORS'][ix]]
+    for ix, link in enumerate(REFERENCES['LINKS']):
+        colors += [COLORS['LINKS'][ix]]
+        labels += [LABELS['LINKS'][ix]]
+        
     mixes = np.array(network_sols).T
-    for ix, label in enumerate(LABELS):
+    for ix, label in enumerate(labels):
         plt.plot(co2_limits, mixes[ix], '--bo', label=label, color=colors[ix])
     plt.xlabel(r"CO2 limit (Mt CO$_2$)")
     plt.xticks(co2_limits, [str(int(x/1e6)) for x in co2_limits])
