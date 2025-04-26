@@ -4,7 +4,7 @@ from a import create_network, annuity
 from b import add_co2_constraint, create_co2_limits
 import results_plotter as plot
 
-def add_storage(network: pypsa.Network):
+def add_hydrogen(network: pypsa.Network):
     #Create a new carrier
     network.add("Carrier", "H2")
 
@@ -44,6 +44,92 @@ def add_storage(network: pypsa.Network):
         efficiency = 0.58,
         capital_cost = 0 # annuity(10, 0.07)*1300000*(1+0.05),
     )
+
+def add_battery_storage(network: pypsa.Network):
+    # Create a new bus for the battery storage
+    # Source for costs: https://www.nrel.gov/docs/fy23osti/85332.pdf
+    network.add("Bus", "Battery", carrier="electricity")
+
+    # Add a store for the battery storage
+    network.add(
+        "Store",
+        "Battery",
+        bus = "Battery",
+        e_nom_extendable = True,
+        e_cyclic = True,
+        capital_cost = annuity(15, 0.07)*150000*0.9, # Converted from $ to € and from kWh to MWh, assuming 10 years lifetime
+    )
+
+    # Add a link for the battery storage
+    network.add(
+        "Link",
+        "AC-DC Converter",
+        bus0 = "electricity bus",
+        bus1 = "Battery",
+        p_nom_extendable = True,
+        efficiency = 0.9,
+        capital_cost = annuity(15, 0.07)*300000*0.9*0.5,
+    )
+
+    network.add(
+        "Link",
+        "DC-AC Inverter",
+        bus0 = "Battery",
+        bus1 = "electricity bus",
+        p_nom_extendable = True,
+        efficiency = 0.9,
+        capital_cost = annuity(15, 0.07)*300000*0.9*0.5,
+    )
+
+def add_hydro_storages(network: pypsa.Network, data: DataLoader):
+    network.add(
+        "Store",
+        "DamReservoir",
+        bus = "Water",
+        e_nom = data.hydro_capacities["dammed_hydro_storage"].values[0],
+        e_cyclic = True,
+        capital_cost = 0,
+    )
+    network.add("Bus", "PumpedHydro", carrier="Water")
+    network.add(
+        "Store",
+        "PumpedHydro",
+        bus = "PumpedHydro",
+        e_nom = data.hydro_capacities["pumped_hydro_storage"].values[0],
+        e_cyclic = True,
+        capital_cost = 0,
+    )
+    capital_cost_hydro = annuity(80, data.r)*2000000*(1+0.01) # in €/MW
+    network.add(
+        "Link",
+        "PumpedHydroTurbine",
+        bus0 = "PupmpedHydro",
+        bus1 = "electricity bus",
+        p_nom = data.hydro_capacities["pumped_hydro_power"].values[0],
+        efficiency = 0.95,
+        capital_cost = capital_cost_hydro/2,
+    )
+    network.add(
+        "Link",
+        "PumpedHydroPump",
+        bus0 = "electricity bus",
+        bus1 = "PumpedHydro",
+        p_nom = data.hydro_capacities["pumped_hydro_power"].values[0],
+        efficiency = 0.95,
+        capital_cost = capital_cost_hydro/2,
+    )
+
+def add_storage(network: pypsa.Network, data: DataLoader):
+    """ Add storage to the network """
+
+    # Add hydro storage
+    add_hydro_storages(network, data)
+
+    # Add hydrogen storage
+    add_hydrogen(network)
+
+    # Add battery storage
+    add_battery_storage(network)
     
     return network
 
@@ -51,7 +137,7 @@ def compare_co2_limits(network: pypsa.Network, co2_limits: list):
     networks = []
     for co2_limit in co2_limits:
         net = create_network(data)
-        net = add_storage(net)
+        net = add_storage(net, data)
         # net = network.copy()
         net = add_co2_constraint(net, co2_limit)
         net.optimize()
@@ -67,7 +153,7 @@ if __name__ == "__main__":
 
     # Create the network
     network = create_network(data)
-    network = add_storage(network)
+    network = add_storage(network, data)
     network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
 
     # Optimize the network
