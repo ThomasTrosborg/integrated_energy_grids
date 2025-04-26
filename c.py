@@ -1,19 +1,11 @@
 from data_loader import DataLoader
-from main import create_network
+from a import create_network
 import results_plotter as plot
 import numpy as np
 
-labels = ['onshorewind',
-        'solar',
-        'OCGT']
-colors=['blue', 'orange', 'brown']
-
-weather_years = [1981,1990]
+weather_years = [1980,1985,1990,1995,2000,2010,2015]
 
 mixes = []
-variability_onw = []
-variability_solar = []
-variability_ocgt = []
 
 for w_year in weather_years:
 
@@ -31,10 +23,7 @@ for w_year in weather_years:
             constant=20e6)
     network.optimize()
 
-    mixes += [[network.generators_t.p[label].sum() for label in labels]]
-    variability_onw += [network.generators_t.p['onshorewind']]
-    variability_solar += [network.generators_t.p['solar']]
-    variability_ocgt += [network.generators_t.p['OCGT']]
+    mixes += [[network.generators_t.p[label].sum() for label in plot.LABELS]]
 
 print("Mixes: ", np.array(mixes).T)
 

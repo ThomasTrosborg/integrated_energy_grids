@@ -18,7 +18,7 @@ def add_storage(network: pypsa.Network):
         bus = "H2",
         e_nom_extendable = True,
         e_cyclic = True,
-        capital_cost = annuity(25, 0.07)*57000*(1+0.011),
+        capital_cost = 0 # annuity(25, 0.07)*57000*(1+0.011),
     )
 
     #Add the link "H2 Electrolysis" that transport energy from the electricity bus (bus0) to the H2 bus (bus1)
@@ -30,7 +30,7 @@ def add_storage(network: pypsa.Network):
         bus1 = "H2",
         p_nom_extendable = True,
         efficiency = 0.8,
-        capital_cost = annuity(25, 0.07)*600000*(1+0.05),
+        capital_cost = 0 # annuity(25, 0.07)*600000*(1+0.05),
     )
 
     #Add the link "H2 Fuel Cell" that transports energy from the H2 bus (bus0) to the electricity bus (bus1)
@@ -42,7 +42,7 @@ def add_storage(network: pypsa.Network):
         bus1 = "electricity bus",
         p_nom_extendable = True,
         efficiency = 0.58,
-        capital_cost = annuity(10, 0.07)*1300000*(1+0.05),
+        capital_cost = 0 # annuity(10, 0.07)*1300000*(1+0.05),
     )
     
     return network
