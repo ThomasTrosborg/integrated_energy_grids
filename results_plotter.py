@@ -80,6 +80,36 @@ def plot_generation_mixes(network_sols, co2_limits, filename: str | None = None)
 
     plt.show()
 
+
+def plot_weather_variability(network_sols, filename: str = None):
+
+    labels = ['onshorewind', 'solar', 'OCGT']
+    colors = ['blue', 'orange', 'brown']
+    mixes = np.array(network_sols)
+    boxprops = dict(color='black')  # Default box properties
+    medianprops = dict(color='red')  # Default median line properties
+
+    for i, color in enumerate(colors):
+        plt.boxplot(
+            mixes[:, i],
+            positions=[i + 1],
+            patch_artist=True,
+            boxprops=dict(facecolor=color, color=color),
+            medianprops=medianprops,
+            label=labels[i]
+        )
+
+    plt.xticks(ticks=range(1, len(labels) + 1), labels=labels)
+
+    plt.xlabel(r"Generator technology")
+    plt.ylabel(r"Mean Capacity (MW)")
+    plt.legend()
+    plt.title(r'Average generation mixes using different weather years')
+
+    if filename is not None: save_figure(filename)
+    plt.show()
+
+    
 def plot_storage_day(network: pypsa.Network, filename: str | None = None):
     plt.plot(
         network.loads_t.p['load'].groupby(network.snapshots.hour).mean(), 
