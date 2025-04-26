@@ -33,7 +33,7 @@ class DataLoader:
         df_onshorewind = df_onshorewind[[self.country]+self.neighbors].loc[self.weather_dates]
         self.cf_onw = df_onshorewind[~((df_onshorewind.index.month == 2) & (df_onshorewind.index.day == 29))]
 
-    def read_hydro(self):
+    def read_hydro_inflows(self):
         """Read hydro data from CSV file and expand it to hourly resolution for 2013–2022"""
 
         # Load CSV and parse date
@@ -87,7 +87,7 @@ class DataLoader:
         df_solar.index = pd.to_datetime(df_solar.index)
 
         df_solar = df_solar[[self.country]+self.neighbors].loc[self.weather_dates]
-        self.cf_onw = df_solar[~((df_solar.index.month == 2) & (df_solar.index.day == 29))]
+        self.cf_solar = df_solar[~((df_solar.index.month == 2) & (df_solar.index.day == 29))]
 
     def read_hydro_capacities(self):
         """ Read hydro data from CSV file """

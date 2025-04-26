@@ -48,7 +48,7 @@ def create_network(data: DataLoader):
         #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
         capital_cost = capital_cost_onshorewind,
         marginal_cost = 0,
-        p_max_pu = data.cf_onw.values,
+        p_max_pu = data.cf_onw[data.country].values,
     )
 
     # add offshore wind generator
