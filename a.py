@@ -34,7 +34,7 @@ def create_network(data: DataLoader):
         "Load",
         "load",
         bus="electricity bus",
-        p_set=data.p_d.values
+        p_set=data.p_d[data.country].values
     )
 
     # add onshore wind generator

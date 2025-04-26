@@ -10,14 +10,14 @@ if __name__ == "__main__":
     data = DataLoader(country="ESP", discount_rate=0.07)
 
     # Create the CO2 limits
-    co2_limits = create_co2_limits(10)
+    co2_limits = create_co2_limits(10)[:-1]
 
     co2_prices = []
     for co2_limit in co2_limits:
         # Create the network
         network = create_network(data)
-        network = add_storage(network)
-        network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
+        # network = add_storage(network)
+        network = add_co2_constraint(network, co2_limit)
 
         # Optimize the network
         network.optimize()

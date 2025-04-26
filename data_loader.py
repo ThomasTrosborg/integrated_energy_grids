@@ -2,8 +2,9 @@ import pandas as pd
 import pathlib
 
 class DataLoader:
-    def __init__(self, country: str = 'ESP', discount_rate: float = 0.07):
+    def __init__(self, country: str = 'ESP', neighbors: list = ["FRA", "PRT"], discount_rate: float = 0.07):
         self.country = country
+        self.neighbors = neighbors
         self.dates = pd.date_range('2015-01-01 00:00Z', '2015-12-31 23:00Z', freq='h')
         self.r = discount_rate
         self.path = str(pathlib.Path(__file__).parent.resolve()) + "/"
@@ -18,7 +19,7 @@ class DataLoader:
         df_elec = pd.read_csv(self.path + 'data/electricity_demand.csv', sep=';', index_col=0)
         df_elec.index = pd.to_datetime(df_elec.index)
 
-        self.p_d = df_elec[self.country][self.dates]
+        self.p_d = df_elec[[self.country]+self.neighbors][self.dates]
 
     def read_onshore_wind(self):
         """ Read onshore wind data from CSV file """

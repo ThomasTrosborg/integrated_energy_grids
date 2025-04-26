@@ -145,7 +145,7 @@ def plot_co2_limit_vs_price(co2_limits: np.ndarray, co2_prices: np.ndarray, file
     plt.axhline(y=62.54, color='r', linestyle='--', label='62.54 €/ton CO$_2$')
     plt.legend(fancybox=True, shadow=True, loc='best')
     plt.xlabel(r"CO$_2$ limit [Mt CO$_2$]")
-    plt.ylabel(r"Price [€/ton CO$_2$]")
+    plt.ylabel(r"Price [€/Mton CO$_2$]")
     plt.title(r'Price vs CO$_2$ limit')
 
     if filename is not None: save_figure(filename)
