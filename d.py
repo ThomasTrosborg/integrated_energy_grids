@@ -85,7 +85,7 @@ def add_hydro_storages(network: pypsa.Network, data: DataLoader):
     network.add(
         "Store",
         "DamReservoir",
-        bus = "Water",
+        bus = "DamWater",
         e_nom = data.hydro_capacities["dammed_hydro_storage"].values[0],
         e_cyclic = True,
         capital_cost = 0,
@@ -103,7 +103,7 @@ def add_hydro_storages(network: pypsa.Network, data: DataLoader):
     network.add(
         "Link",
         "PumpedHydroTurbine",
-        bus0 = "PupmpedHydro",
+        bus0 = "PumpedHydro",
         bus1 = "electricity bus",
         p_nom = data.hydro_capacities["pumped_hydro_power"].values[0],
         efficiency = 0.95,

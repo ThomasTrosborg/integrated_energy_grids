@@ -2,9 +2,17 @@ import pandas as pd
 import pathlib
 
 class DataLoader:
-    def __init__(self, country: str = 'ESP', neighbors: list = ["FRA", "PRT"], discount_rate: float = 0.07, weather_year: int = 2015):
+    def __init__(
+            self, 
+            country: str = 'ESP', 
+            neighbors: list = ["FRA", "PRT"],
+            coordinates: dict = {'ESP': (40.8, -2.4), 'PRT': (38.74, -9.15), 'FRA': (47.1, 2.29)},
+            discount_rate: float = 0.07, 
+            weather_year: int = 2015,
+            ):
         self.country = country
         self.neighbors = neighbors
+        self.coordinates = coordinates
         self.dates = pd.date_range('2015-01-01 00:00Z', '2015-12-31 23:00Z', freq='h')
         self.weather_dates = pd.date_range(f'{weather_year}-01-01 00:00Z', f'{weather_year}-12-31 23:00Z', freq='h')
         self.r = discount_rate
