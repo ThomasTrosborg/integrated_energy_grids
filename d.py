@@ -4,12 +4,18 @@ from a import create_network, annuity
 from b import add_co2_constraint, create_co2_limits
 import results_plotter as plot
 
-def add_hydrogen(network: pypsa.Network):
+def add_hydrogen(network: pypsa.Network, data: DataLoader):
     #Create a new carrier
     network.add("Carrier", "H2")
 
     #Create a new bus
-    network.add("Bus", "H2", carrier = "H2")
+    network.add(
+        "Bus", 
+        "H2", 
+        y = data.coordinates[data.country][0],
+        x = data.coordinates[data.country][1],
+        carrier = "H2",
+    )
 
     #Connect the store to the bus
     network.add(
@@ -44,11 +50,18 @@ def add_hydrogen(network: pypsa.Network):
         efficiency = 0.58,
         capital_cost = 0 # annuity(10, 0.07)*1300000*(1+0.05),
     )
+    return network
 
-def add_battery_storage(network: pypsa.Network):
+def add_battery_storage(network: pypsa.Network, data: DataLoader):
     # Create a new bus for the battery storage
     # Source for costs: https://www.nrel.gov/docs/fy23osti/85332.pdf
-    network.add("Bus", "Battery", carrier="electricity")
+    network.add(
+        "Bus", 
+        "Battery",
+        y = data.coordinates[data.country][0],
+        x = data.coordinates[data.country][1], 
+        carrier="electricity",
+    )
 
     # Add a store for the battery storage
     network.add(
@@ -80,6 +93,7 @@ def add_battery_storage(network: pypsa.Network):
         efficiency = 0.9,
         capital_cost = annuity(15, 0.07)*300000*0.9*0.5,
     )
+    return network
 
 def add_hydro_storages(network: pypsa.Network, data: DataLoader):
     network.add(
@@ -90,7 +104,13 @@ def add_hydro_storages(network: pypsa.Network, data: DataLoader):
         e_cyclic = True,
         capital_cost = 0,
     )
-    network.add("Bus", "PumpedHydro", carrier="Water")
+    network.add(
+        "Bus", 
+        "PumpedHydro",
+        y = data.coordinates[data.country][0],
+        x = data.coordinates[data.country][1],
+        carrier="Water",
+    )
     network.add(
         "Store",
         "PumpedHydro",
@@ -118,18 +138,19 @@ def add_hydro_storages(network: pypsa.Network, data: DataLoader):
         efficiency = 0.95,
         capital_cost = capital_cost_hydro/2,
     )
+    return network
 
 def add_storage(network: pypsa.Network, data: DataLoader):
     """ Add storage to the network """
 
     # Add hydro storage
-    add_hydro_storages(network, data)
+    network = add_hydro_storages(network, data)
 
     # Add hydrogen storage
-    add_hydrogen(network)
+    network = add_hydrogen(network, data)
 
     # Add battery storage
-    add_battery_storage(network)
+    network = add_battery_storage(network, data)
     
     return network
 

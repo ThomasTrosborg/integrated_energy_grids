@@ -105,7 +105,13 @@ def create_network(data: DataLoader):
     # In reality, dammed hydro can store energy and is therefore a storage generator.
     # We will introduce this in the following exercises.
     network.add("Carrier", "Water")
-    network.add("Bus", "DamWater", carrier = "Water")
+    network.add(
+        "Bus", 
+        "DamWater", 
+        y = data.coordinates[data.country][0],
+        x = data.coordinates[data.country][1],
+        carrier = "Water",
+    )
     network.add( # The inflow of rainwater to the dam is modeled as a generator
         "Generator",
         "Rain to DamWater",
