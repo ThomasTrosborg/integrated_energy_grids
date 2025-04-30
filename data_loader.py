@@ -23,6 +23,7 @@ class DataLoader:
         self.read_solar()
         self.read_hydro_capacities()
         self.read_hydro_inflows()
+        self.read_hydro_inflows_PRT()
 
     def read_electricity_demand(self):
         """ Read electricity demand data from CSV file """
@@ -80,6 +81,46 @@ class DataLoader:
 
         self.cf_hydro = df_expanded.loc[self.dates, 'Inflow [MWh]'] # Select only the dates we need
     
+    def read_hydro_inflows_PRT(self):
+        """Read hydro data from CSV file and expand it to hourly resolution for 2013–2022"""
+
+        # Load CSV and parse date
+        df_hydro = pd.read_csv(self.path + 'data/Hydro_Inflow_PT.csv', sep=',')
+        df_hydro['date'] = pd.to_datetime(df_hydro[['Year', 'Month', 'Day']])
+        df_hydro['date'] = df_hydro['date'].dt.tz_localize('UTC')
+        df_hydro.set_index('date', inplace=True)
+        df_hydro.drop(columns=['Year', 'Month', 'Day'], inplace=True)
+
+        # Convert daily inflow to hourly (divide by 24 and repeat)
+        daily_values = df_hydro.copy()
+        daily_values = daily_values.loc[daily_values.index.repeat(24)]
+        daily_values.index = pd.date_range(
+            start=df_hydro.index.min(),
+            periods=len(daily_values),
+            freq='h',
+            tz='UTC'
+        )
+        daily_values['Inflow [GWh]'] /= 24
+
+        # Repeat inflow values to cover 2013–2022
+        target_index = pd.date_range(
+            start='2013-01-01 00:00:00',
+            end='2023-01-01 23:00:00',
+            freq='h',
+            tz='UTC'
+        )
+        num_hours_needed = len(target_index)
+        hourly_cycle = daily_values['Inflow [GWh]'].values
+        repeats = -(-num_hours_needed // len(hourly_cycle))  # Ceiling division
+        full_inflow = pd.Series(hourly_cycle.tolist() * repeats, index=target_index)[:num_hours_needed]
+
+        #Create final DataFrame with correct hourly index
+        df_expanded = pd.DataFrame({'Inflow [MWh]': full_inflow*1000}) # Convert GWh to MWh
+        df_expanded.index.name = 'datetime'
+
+        self.cf_hydro_PRT = df_expanded.loc[self.dates, 'Inflow [MWh]'] # Select only the dates we need
+    
+
     # def read_offshore_wind(self):
     #     """ Read offshore wind data from CSV file """
 

@@ -37,10 +37,11 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "FRA nuke",
         bus="FRA",
         p_nom_extendable=False, # capacity is fixed
-        p_nom=data.p_d["FRA"].max(), # capacity is fixed to the load
+        p_nom=61.4 * 1000, # capacity is fixed to the load
         carrier="nuke",
         marginal_cost=0,
     )
+    """
     network.add(
         "Generator",
         "PRT nuke",
@@ -49,6 +50,96 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         p_nom=data.p_d["PRT"].max(), # capacity is fixed to the load
         carrier="nuke",
         marginal_cost=0,
+    )
+    """
+
+    capital_cost_onshorewind = annuity(30, data.r)*910000*(1+0.033) # in €/MW
+    network.add(
+        "Generator",
+        "FRA wind",
+        bus="FR",
+        p_nom_extendable=False, # capacity is fixed
+        p_nom=24.6 * 1000, # capacity is fixed to the load
+        carrier="wind",
+        marginal_cost=0,
+        p_max_pu=data.cf_onw["FRA"].values, # capacity factor
+        capital_cost = capital_cost_onshorewind,
+    )
+
+    capital_cost_solar = annuity(25,data.r)*425000*(1+0.03) # in €/MW
+    network.add(
+        "Generator",
+        "FRA solar",
+        bus="FR",
+        p_nom_extendable=False, # capacity is fixed
+        p_nom= 21.2 * 1000, # capacity is fixed to the load
+        carrier="solar",
+        marginal_cost=0,
+        p_max_pu=data.cf_solar["FRA"].values, # capacity factor
+        capital_cost = capital_cost_solar,
+    )
+
+    # Add a generator in Portugal
+    network.add(
+        "Generator",
+        "PRT wind",
+        bus="PRT",
+        p_nom_extendable=False, # capacity is fixed
+        p_nom= 5.4 * 1000, # capacity is fixed to the load
+        carrier="wind",
+        marginal_cost=0,
+        p_max_pu=data.cf_onw["PRT"].values, # capacity factor
+        capital_cost = capital_cost_onshorewind,
+    )
+
+    network.add(
+        "Generator",
+        "PRT solar",
+        bus="PRT",
+        p_nom_extendable=False, # capacity is fixed
+        p_nom= 2.6 * 1000, # capacity is fixed to the load
+        carrier="solar",
+        marginal_cost=0,
+        p_max_pu=data.cf_solar["PRT"].values, # capacity factor
+        capital_cost = capital_cost_solar,
+    )
+
+    network.add(
+        "Generator",
+        "PRT gas",
+        bus="PRT",
+        p_nom_extendable=False, # capacity is fixed
+        p_nom= 4.4 * 1000, # capacity is fixed to the load
+        carrier="gas",
+        marginal_cost=0,
+        capital_cost = 0,
+    )
+
+    # Dammed hydro generator as a run of river generator. This is a simplification.
+    # In reality, dammed hydro can store energy and is therefore a storage generator.
+    # We will introduce this in the following exercises.
+    network.add("Carrier", "Water")
+    network.add("Bus", "DamWater", carrier = "Water")
+    network.add( # The inflow of rainwater to the dam is modeled as a generator
+        "Generator",
+        "Rain to DamWater",
+        bus = "DamWater PT",
+        p_nom = 4.6 * 1000, 
+        carrier = "Water",
+        capital_cost = 0,
+        marginal_cost = 0,
+        p_max_pu = data.cf_hydro_PRT.values/max(data.cf_hydro_PRT.values),
+    )
+    
+    network.add(
+        "Link",
+        "HDAM",
+        bus0="DamWater PT",
+        bus1="PRT",
+        p_nom= 4.6 * 1000, 
+        capital_cost = 0,
+        marginal_cost = 0,
+        efficiency = 0.95, # MWh_elec/MWh_potential_energy
     )
 
     return network
