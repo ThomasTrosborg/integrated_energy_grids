@@ -14,6 +14,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             neighbor, 
             y = data.coordinates[neighbor][0],
             x = data.coordinates[neighbor][1],
+            carrier="electricity",
         )
         network.add(
             "Link",
@@ -31,6 +32,8 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             bus=neighbor,
             p_set=data.p_d[neighbor].values,
         )
+
+    network.add("Carrier", "nuke")
 
     network.add(
         "Generator",
@@ -57,10 +60,10 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
     network.add(
         "Generator",
         "FRA wind",
-        bus="FR",
+        bus="FRA",
         p_nom_extendable=False, # capacity is fixed
         p_nom=24.6 * 1000, # capacity is fixed to the load
-        carrier="wind",
+        carrier="onshore wind",
         marginal_cost=0,
         p_max_pu=data.cf_onw["FRA"].values, # capacity factor
         capital_cost = capital_cost_onshorewind,
@@ -70,7 +73,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
     network.add(
         "Generator",
         "FRA solar",
-        bus="FR",
+        bus="FRA",
         p_nom_extendable=False, # capacity is fixed
         p_nom= 21.2 * 1000, # capacity is fixed to the load
         carrier="solar",
@@ -86,7 +89,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         bus="PRT",
         p_nom_extendable=False, # capacity is fixed
         p_nom= 5.4 * 1000, # capacity is fixed to the load
-        carrier="wind",
+        carrier="onshore wind",
         marginal_cost=0,
         p_max_pu=data.cf_onw["PRT"].values, # capacity factor
         capital_cost = capital_cost_onshorewind,
@@ -119,10 +122,10 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
     # In reality, dammed hydro can store energy and is therefore a storage generator.
     # We will introduce this in the following exercises.
     network.add("Carrier", "Water")
-    network.add("Bus", "DamWater", carrier = "Water")
+    network.add("Bus", "DamWater PT", carrier = "Water")
     network.add( # The inflow of rainwater to the dam is modeled as a generator
         "Generator",
-        "Rain to DamWater",
+        "Rain to DamWater PT",
         bus = "DamWater PT",
         p_nom = 4.6 * 1000, 
         carrier = "Water",
@@ -133,7 +136,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
     
     network.add(
         "Link",
-        "HDAM",
+        "HDAM PT",
         bus0="DamWater PT",
         bus1="PRT",
         p_nom= 4.6 * 1000, 
@@ -151,7 +154,7 @@ if __name__ == '__main__':
 
     # Create the network
     network = create_network(data)
-    # network = add_storage(network, data)
+    network = add_storage(network, data)
     # network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
     network = add_neighbors(network, data)
 

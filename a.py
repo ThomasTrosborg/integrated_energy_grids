@@ -25,6 +25,7 @@ def create_network(data: DataLoader):
     network.add("Carrier", "onshore wind")
     network.add("Carrier", "offshore wind")
     network.add("Carrier", "solar")
+    
 
      # add the electricity bus
     network.add(
