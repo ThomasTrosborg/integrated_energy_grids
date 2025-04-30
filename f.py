@@ -37,13 +37,15 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             p_set=data.p_d[neighbor].values,
         )
 
+    multiplier = 1.5 # scaling factor for production in the neighboring countries
+
     network.add("Carrier", "nuke")
     network.add(
         "Generator",
         "FRA nuke",
         bus="FRA",
         p_nom_extendable=False, # capacity is fixed
-        p_nom=61.4 * 1000 * 1.5, 
+        p_nom=61.4 * 1000 * multiplier, 
         carrier="nuke",
         marginal_cost=0,
     )
@@ -92,7 +94,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "PRT solar",
         bus="PRT",
         p_nom_extendable=False, # capacity is fixed
-        p_nom= 2.6 * 1000 * 1.5, # capacity is fixed to the load
+        p_nom= 2.6 * 1000 * multiplier, # capacity is fixed to the load
         carrier="solar",
         marginal_cost=0,
         p_max_pu=data.cf_solar["PRT"].values, # capacity factor
@@ -104,7 +106,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "PRT gas",
         bus="PRT",
         p_nom_extendable=False, # capacity is fixed
-        p_nom= 4.4 * 1000 * 1.5, # capacity is fixed to the load
+        p_nom= 4.4 * 1000 * multiplier, # capacity is fixed to the load
         carrier="gas",
         marginal_cost=0,
         capital_cost = 0,
