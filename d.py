@@ -60,7 +60,7 @@ def add_battery_storage(network: pypsa.Network, data: DataLoader):
         "Battery",
         y = data.coordinates[data.country][0],
         x = data.coordinates[data.country][1], 
-        carrier="electricity",
+        carrier="AC",
     )
 
     # Add a store for the battery storage

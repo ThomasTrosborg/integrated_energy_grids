@@ -222,3 +222,5 @@ def plot_co2_limit_vs_price(co2_limits: np.ndarray, co2_prices: np.ndarray, file
     if filename is not None: save_figure(filename)
 
     plt.show()
+
+
