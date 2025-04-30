@@ -14,7 +14,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             neighbor, 
             y = data.coordinates[neighbor][0],
             x = data.coordinates[neighbor][1],
-            carrier="electricity",
+            carrier="AC",
         )
         network.add(
             "Line",
@@ -36,7 +36,6 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         )
 
     network.add("Carrier", "nuke")
-
     network.add(
         "Generator",
         "FRA nuke",

@@ -21,11 +21,10 @@ def create_network(data: DataLoader):
 
     # add the different carriers, only gas emits CO2
     network.add("Carrier", "gas", co2_emissions=0.19) # in t_CO2/MWh_th
-    network.add("Carrier", "electricity", co2_emissions=0)
+    network.add("Carrier", "AC", co2_emissions=0)
     network.add("Carrier", "onshore wind")
     network.add("Carrier", "offshore wind")
     network.add("Carrier", "solar")
-    
 
      # add the electricity bus
     network.add(
@@ -33,7 +32,7 @@ def create_network(data: DataLoader):
         "electricity bus", 
         y = data.coordinates[data.country][0],
         x = data.coordinates[data.country][1],
-        carrier="electricity",
+        carrier="AC",
     )
 
     # add load to the bus
