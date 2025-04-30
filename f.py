@@ -69,7 +69,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "FRA solar",
         bus="FRA",
         p_nom_extendable=False, # capacity is fixed
-        p_nom= 21.2 * 1000 * capacity_multiplier, # capacity is fixed to the load
+        p_nom= 21.2 * 1000 * multiplier, # capacity is fixed to the load
         carrier="solar",
         marginal_cost=0,
         p_max_pu=data.cf_solar["FRA"].values, # capacity factor
@@ -121,7 +121,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "Generator",
         "Rain to DamWater PT",
         bus = "DamWater PT",
-        p_nom = 4.6 * 1000 * capacity_multiplier, 
+        p_nom = 4.6 * 1000, 
         carrier = "Water",
         capital_cost = 0,
         marginal_cost = 0,
@@ -133,7 +133,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "HDAM PT",
         bus0="DamWater PT",
         bus1="PRT",
-        p_nom= 4.6 * 1000 * capacity_multiplier, 
+        p_nom= 4.6 * 1000, 
         capital_cost = 0,
         marginal_cost = 0,
         efficiency = 0.95, # MWh_elec/MWh_potential_energy
