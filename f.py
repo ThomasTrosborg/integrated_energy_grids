@@ -16,14 +16,16 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             x = data.coordinates[neighbor][1],
         )
         network.add(
-            "Link",
+            "Line",
             f"{data.country}-{neighbor}",
             bus0="electricity bus",
             bus1=neighbor,
             p_nom_extendable=True, # capacity is optimised
             p_min_pu=-1,
+            x=0.01, # reactance [ohm/km]
+            r=0.01, # resistance [ohm/km]
             length=length[neighbor], # length [km] between country a and country b
-            capital_cost=400*length[neighbor], # capital cost [EUR/(MW*km)] * length [km]
+            capital_cost=400*length[neighbor], # capital cost of 400 [EUR/(MW*km)] * length [km]
         )
         network.add(
             "Load",
@@ -37,27 +39,16 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "FRA nuke",
         bus="FRA",
         p_nom_extendable=False, # capacity is fixed
-        p_nom=61.4 * 1000, # capacity is fixed to the load
+        p_nom=61.4 * 1000, 
         carrier="nuke",
         marginal_cost=0,
     )
-    """
-    network.add(
-        "Generator",
-        "PRT nuke",
-        bus="PRT",
-        p_nom_extendable=False, # capacity is fixed
-        p_nom=data.p_d["PRT"].max(), # capacity is fixed to the load
-        carrier="nuke",
-        marginal_cost=0,
-    )
-    """
 
     capital_cost_onshorewind = annuity(30, data.r)*910000*(1+0.033) # in €/MW
     network.add(
         "Generator",
         "FRA wind",
-        bus="FR",
+        bus="FRA",
         p_nom_extendable=False, # capacity is fixed
         p_nom=24.6 * 1000, # capacity is fixed to the load
         carrier="wind",
@@ -70,7 +61,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
     network.add(
         "Generator",
         "FRA solar",
-        bus="FR",
+        bus="FRA",
         p_nom_extendable=False, # capacity is fixed
         p_nom= 21.2 * 1000, # capacity is fixed to the load
         carrier="solar",
