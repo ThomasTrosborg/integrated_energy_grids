@@ -7,6 +7,7 @@ from d import add_storage
 import results_plotter as plot
 
 def add_neighbors(network: pypsa.Network, data: DataLoader):
+    capacity_multiplier = 1.5
     length = {"FRA": 400, "PRT": 90} # km source: https://www.ren.pt/en-gb/activity/main-projects/portugal-spain-interconnection
     for neighbor in data.neighbors:
         network.add(
@@ -22,10 +23,10 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             bus1=neighbor,
             p_nom_extendable=True, # capacity is optimised
             p_min_pu=-1,
-            x=0.01, # reactance [ohm/km]
-            r=0.01, # resistance [ohm/km]
+            r=0.02, # reactance [ohm/km]
+            x=0.3, # resistance [ohm/km]
             length=length[neighbor], # length [km] between country a and country b
-            capital_cost=400*length[neighbor], # capital cost of 400 [EUR/(MW*km)] * length [km]
+            capital_cost=2000*length[neighbor], # capital cost of 2000 [EUR/(MW*km)] * length [km]
         )
         network.add(
             "Load",
@@ -39,7 +40,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "FRA nuke",
         bus="FRA",
         p_nom_extendable=False, # capacity is fixed
-        p_nom=61.4 * 1000, 
+        p_nom=61.4 * 1000 * capacity_multiplier, 
         carrier="nuke",
         marginal_cost=0,
     )
@@ -50,7 +51,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "FRA wind",
         bus="FRA",
         p_nom_extendable=False, # capacity is fixed
-        p_nom=24.6 * 1000, # capacity is fixed to the load
+        p_nom=24.6 * 1000 * capacity_multiplier, # capacity is fixed to the load
         carrier="wind",
         marginal_cost=0,
         p_max_pu=data.cf_onw["FRA"].values, # capacity factor
@@ -63,7 +64,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "FRA solar",
         bus="FRA",
         p_nom_extendable=False, # capacity is fixed
-        p_nom= 21.2 * 1000, # capacity is fixed to the load
+        p_nom= 21.2 * 1000 * capacity_multiplier, # capacity is fixed to the load
         carrier="solar",
         marginal_cost=0,
         p_max_pu=data.cf_solar["FRA"].values, # capacity factor
@@ -76,7 +77,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "PRT wind",
         bus="PRT",
         p_nom_extendable=False, # capacity is fixed
-        p_nom= 5.4 * 1000, # capacity is fixed to the load
+        p_nom= 5.4 * 1000 * capacity_multiplier, # capacity is fixed to the load
         carrier="wind",
         marginal_cost=0,
         p_max_pu=data.cf_onw["PRT"].values, # capacity factor
@@ -88,7 +89,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "PRT solar",
         bus="PRT",
         p_nom_extendable=False, # capacity is fixed
-        p_nom= 2.6 * 1000, # capacity is fixed to the load
+        p_nom= 2.6 * 1000 * capacity_multiplier, # capacity is fixed to the load
         carrier="solar",
         marginal_cost=0,
         p_max_pu=data.cf_solar["PRT"].values, # capacity factor
@@ -100,7 +101,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "PRT gas",
         bus="PRT",
         p_nom_extendable=False, # capacity is fixed
-        p_nom= 4.4 * 1000, # capacity is fixed to the load
+        p_nom= 4.4 * 1000 * capacity_multiplier, # capacity is fixed to the load
         carrier="gas",
         marginal_cost=0,
         capital_cost = 0,
@@ -115,7 +116,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "Generator",
         "Rain to DamWater",
         bus = "DamWater PT",
-        p_nom = 4.6 * 1000, 
+        p_nom = 4.6 * 1000 * capacity_multiplier, 
         carrier = "Water",
         capital_cost = 0,
         marginal_cost = 0,
@@ -127,7 +128,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "HDAM",
         bus0="DamWater PT",
         bus1="PRT",
-        p_nom= 4.6 * 1000, 
+        p_nom= 4.6 * 1000 * capacity_multiplier, 
         capital_cost = 0,
         marginal_cost = 0,
         efficiency = 0.95, # MWh_elec/MWh_potential_energy
@@ -142,12 +143,12 @@ if __name__ == '__main__':
 
     # Create the network
     network = create_network(data)
-    # network = add_storage(network, data)
+    network = add_storage(network, data)
     # network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
     network = add_neighbors(network, data)
 
     # Optimize the network
     network.optimize()
-    network.plot()
+    network.plot(margin=0.4)
 
     print(0)
