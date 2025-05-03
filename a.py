@@ -23,7 +23,7 @@ def create_network(data: DataLoader):
         "electricity bus", 
         y = data.coordinates[data.country][0],
         x = data.coordinates[data.country][1],
-        carrier="AC",
+        carrier = "AC",
     )
 
     # add load to the bus
@@ -110,6 +110,15 @@ def create_network(data: DataLoader):
     )
     
     network.add(
+        "Store",
+        "DamReservoir",
+        bus = "DamWater",
+        e_nom = data.hydro_capacities["dammed_hydro_storage"].values[0],
+        e_cyclic = True,
+        capital_cost = 0,
+    )
+
+    network.add(
         "Link",
         "HDAM",
         bus0="DamWater",
@@ -131,7 +140,7 @@ if __name__ == "__main__":
     network = create_network(data)
     network.optimize()
 
-    plot.plot_series(network, ts=180*24) #, filename="a_series_summer.png")
+    plot.plot_series(network, ts=181*24) #, filename="a_series_summer.png")
     plot.plot_series(network, ts=0) #, filename="a_series_winter.png")
     plot.plot_electricity_mix(network) #, filename="a_electricity_mix.png")
     plot.plot_duration_curves(network) #, filename="a_duration_curves.png")
