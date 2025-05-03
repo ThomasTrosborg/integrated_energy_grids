@@ -39,7 +39,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
 
     multiplier = 1.5 # scaling factor for production in the neighboring countries
 
-    network.add("Carrier", "nuke")
+    network.add("Carrier", "nuke", co2_emissions=0) # in t_CO2/MWh_th
     network.add(
         "Generator",
         "FRA nuke",
@@ -47,10 +47,11 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         p_nom_extendable=False, # capacity is fixed
         p_nom=61.4 * 1000 * multiplier, 
         carrier="nuke",
-        marginal_cost=0,
+        capital_cost=data.costs.at["nuclear", "capital_cost"],
+        marginal_cost=data.costs.at["nuclear", "marginal_cost"],
+        efficiency=data.costs.at["nuclear", "efficiency"],
     )
 
-    capital_cost_onshorewind = annuity(30, data.r)*910000*(1+0.033) # in €/MW
     network.add(
         "Generator",
         "FRA wind",
@@ -58,12 +59,11 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         p_nom_extendable=False, # capacity is fixed
         p_nom=24.6 * 1000, # capacity is fixed to the load
         carrier="onshore wind",
-        marginal_cost=0,
         p_max_pu=data.cf_onw["FRA"].values, # capacity factor
-        capital_cost = capital_cost_onshorewind,
+        capital_cost=data.costs.at["onwind", "capital_cost"],
+        marginal_cost=data.costs.at["onwind", "marginal_cost"],
     )
 
-    capital_cost_solar = annuity(25,data.r)*425000*(1+0.03) # in €/MW
     network.add(
         "Generator",
         "FRA solar",
@@ -71,9 +71,9 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         p_nom_extendable=False, # capacity is fixed
         p_nom= 21.2 * 1000 * multiplier, # capacity is fixed to the load
         carrier="solar",
-        marginal_cost=0,
         p_max_pu=data.cf_solar["FRA"].values, # capacity factor
-        capital_cost = capital_cost_solar,
+        capital_cost=data.costs.at["solar", "capital_cost"],
+        marginal_cost=data.costs.at["solar", "marginal_cost"],
     )
 
     # Add a generator in Portugal
@@ -84,9 +84,9 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         p_nom_extendable=False, # capacity is fixed
         p_nom= 5.4 * 1000, # capacity is fixed to the load
         carrier="onshore wind",
-        marginal_cost=0,
         p_max_pu=data.cf_onw["PRT"].values, # capacity factor
-        capital_cost = capital_cost_onshorewind,
+        capital_cost=data.costs.at["onwind", "capital_cost"],
+        marginal_cost=data.costs.at["onwind", "marginal_cost"],
     )
 
     network.add(
@@ -96,9 +96,9 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         p_nom_extendable=False, # capacity is fixed
         p_nom= 2.6 * 1000 * multiplier, # capacity is fixed to the load
         carrier="solar",
-        marginal_cost=0,
         p_max_pu=data.cf_solar["PRT"].values, # capacity factor
-        capital_cost = capital_cost_solar,
+        capital_cost=data.costs.at["solar", "capital_cost"],
+        marginal_cost=data.costs.at["solar", "marginal_cost"],
     )
 
     network.add(
@@ -108,8 +108,9 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         p_nom_extendable=False, # capacity is fixed
         p_nom= 4.4 * 1000 * multiplier, # capacity is fixed to the load
         carrier="gas",
-        marginal_cost=0,
-        capital_cost = 0,
+        capital_cost=data.costs.at["OCGT", "capital_cost"],
+        marginal_cost=data.costs.at["OCGT", "marginal_cost"],
+        efficiency=data.costs.at["OCGT", "efficiency"],
     )
 
     # Dammed hydro generator as a run of river generator. This is a simplification.
@@ -134,9 +135,9 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         bus0="DamWater PT",
         bus1="PRT",
         p_nom= 4.6 * 1000, 
-        capital_cost = 0,
-        marginal_cost = 0,
-        efficiency = 0.95, # MWh_elec/MWh_potential_energy
+        capital_cost=data.costs.at["hydro", "capital_cost"],
+        marginal_cost=data.costs.at["hydro", "marginal_cost"],
+        efficiency=data.costs.at["hydro", "efficiency"],
     )
 
     return network
