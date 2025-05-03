@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import pathlib
 import numpy as np
 import pypsa
-from typing import List, Tuple
+from typing import List
+
 import seaborn as sns
 
 sns.set_theme(style="whitegrid")
@@ -12,7 +13,6 @@ plt.rcParams['axes.titlesize'] = 14
 plt.rcParams['axes.labelsize'] = 12
 plt.rcParams['xtick.labelsize'] = 10
 plt.rcParams['ytick.labelsize'] = 10
-
 
 REFERENCES  = {'GENERATORS' : ['onshore wind', 'solar', 'OCGT'],
                'LINKS'      : ['HDAM'],

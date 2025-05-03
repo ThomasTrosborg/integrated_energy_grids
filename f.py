@@ -161,12 +161,17 @@ if __name__ == '__main__':
     print(max(data.cf_hydro.values))
 
 
-    co2_limit = 0
+    print(len(data.cf_hydro))
+    print(data.cf_hydro.max())
+    print(max(data.cf_hydro.values))
+
+
+    co2_limit = 50e6 # 50 MT CO2 limit
 
     # Create the network
     network = create_network(data)
     network = add_storage(network, data)
-    # network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
+    network = add_co2_constraint(network, co2_limit)
     network = add_neighbors(network, data)
 
     # Optimize the network

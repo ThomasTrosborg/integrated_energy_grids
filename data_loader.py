@@ -172,7 +172,7 @@ class DataLoader:
     #     df_offshorewind = pd.read_csv('data/offshore_wind_1979-2017.csv', sep=';', index_col=0)
     #     df_offshorewind.index = pd.to_datetime(df_offshorewind.index)
 
-    #     self.cf_offw = df_offshorewind[self.country][self.dates]
+    #     self.cf_offw = df_offshorewind["FRA"][self.dates]
 
     def read_solar(self):
         """ Read solar data from CSV file """

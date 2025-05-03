@@ -48,17 +48,17 @@ def create_network(data: DataLoader):
     )
 
     # add offshore wind generator
-    network.add(
-        "Generator",
-        "offshore wind",
-        bus="electricity bus",
-        p_nom_extendable=True,
-        carrier="offshore wind",
-        #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
-        capital_cost=data.costs.at["offwind", "capital_cost"],
-        marginal_cost=data.costs.at["offwind", "marginal_cost"],
-        p_max_pu = data.cf_onw[data.country].values, #TODO use offshore wind data
-    )
+    # network.add(
+    #     "Generator",
+    #     "offshore wind",
+    #     bus="electricity bus",
+    #     p_nom_extendable=True,
+    #     carrier="offshore wind",
+    #     #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
+    #     capital_cost=data.costs.at["offwind", "capital_cost"],
+    #     marginal_cost=data.costs.at["offwind", "marginal_cost"],
+    #     p_max_pu = data.cf_onw[data.country].values, #TODO use offshore wind data
+    # )
 
     # add solar PV generator
     network.add(
