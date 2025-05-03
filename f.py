@@ -1,5 +1,6 @@
 import pypsa
 import numpy as np
+import matplotlib.pyplot as plt
 from data_loader import DataLoader
 from a import create_network, annuity
 from b import add_co2_constraint, create_co2_limits
