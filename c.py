@@ -22,8 +22,13 @@ for w_year in weather_years:
             sense="<=",
             constant=20e6)
     network.optimize()
-
-    mixes += [[network.generators_t.p[label].sum() for label in plot.LABELS]]
+    mix = []
+    for ix, gen in enumerate(plot.REFERENCES['GENERATORS']):
+        mix += [network.generators.p_nom_opt[gen]]
+    for ix, link in enumerate(plot.REFERENCES['LINKS']):
+        mix += [network.links.p_nom_opt[link]]
+    mixes += [mix]
+    #mixes += [[network.generators_t.p[label].sum() for label in plot.LABELS]]
 
 print("Mixes: ", np.array(mixes).T)
 

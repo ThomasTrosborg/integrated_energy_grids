@@ -28,6 +28,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             x=0.3, # resistance [ohm/km]
             length=length[neighbor], # length [km] between country a and country b
             capital_cost=2000*length[neighbor], # capital cost of 2000 [EUR/(MW*km)] * length [km]
+            #type = "Al/St 560/50 4-bundle 750.0", # type of line
         )
     
         network.add(
