@@ -1,11 +1,11 @@
 import pypsa
 import numpy as np
-import matplotlib.pyplot as plt
 from data_loader import DataLoader
 from a import create_network, annuity
 from b import add_co2_constraint, create_co2_limits
 from d import add_storage
 import results_plotter as plot
+import matplotlib.pyplot as plt
 
 def add_neighbors(network: pypsa.Network, data: DataLoader):
     length = {"FRA": 400, "PRT": 90} # km source: https://www.ren.pt/en-gb/activity/main-projects/portugal-spain-interconnection
@@ -15,8 +15,9 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             neighbor, 
             y = data.coordinates[neighbor][0],
             x = data.coordinates[neighbor][1],
-            carrier="AC",
+            carrier = "AC",
         )
+        
         
         network.add(
             "Line",
@@ -24,13 +25,13 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             bus0="electricity bus",
             bus1=neighbor,
             s_nom_extendable=True, # capacity is optimised
-            # p_min_pu=-1,
             r=0.02, # reactance [ohm/km]
             x=0.3, # resistance [ohm/km]
             length=length[neighbor], # length [km] between country a and country b
             capital_cost=2000*length[neighbor], # capital cost of 2000 [EUR/(MW*km)] * length [km]
+            #type = "Al/St 560/50 4-bundle 750.0", # type of line
         )
-    
+        
         network.add(
             "Load",
             f"{neighbor} load",
@@ -118,13 +119,13 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
     # In reality, dammed hydro can store energy and is therefore a storage generator.
     # We will introduce this in the following exercises.
     network.add("Carrier", "Water")
-    network.add("Bus", "DamWater PRT", carrier = "Water")
+    network.add("Bus", "PRT DamWater", carrier = "Water",y = data.coordinates["PRT"][0],
+            x = data.coordinates["PRT"][1],)
     network.add( # The inflow of rainwater to the dam is modeled as a generator
         "Generator",
         "PRT Rain to DamWater",
-        bus = "DamWater PRT",
-        p_nom_extendable=False, # capacity is fixed
-        p_nom = max(data.cf_hydro_PRT.values),
+        bus = "PRT DamWater",
+        p_nom = max(data.cf_hydro_PRT.values), 
         carrier = "Water",
         capital_cost = 0,
         marginal_cost = 0,
@@ -140,8 +141,8 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
     )
     network.add(
         "Link",
-        "HDAM PRT",
-        bus0="DamWater PRT",
+        "PRT HDAM",
+        bus0="PRT DamWater",
         bus1="PRT",
         p_nom_extendable=False, # capacity is fixed
         p_nom= 4.6 * 1000, 
@@ -155,6 +156,16 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
 if __name__ == '__main__':
     data = DataLoader(country="ESP", discount_rate=0.07)
 
+    print(len(data.cf_hydro))
+    print(data.cf_hydro.max())
+    print(max(data.cf_hydro.values))
+
+
+    print(len(data.cf_hydro))
+    print(data.cf_hydro.max())
+    print(max(data.cf_hydro.values))
+
+
     co2_limit = 50e6 # 50 MT CO2 limit
 
     # Create the network
@@ -167,6 +178,7 @@ if __name__ == '__main__':
     network.optimize()
     network.plot(margin=0.4)
     plt.show()
+
     network.generators.p_nom_opt.div(10**3).plot.barh()
     plt.show()
     plot.plot_electricity_mix(network) #, filename="f_electricity_mix.png")

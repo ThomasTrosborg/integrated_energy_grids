@@ -2,7 +2,7 @@ import pandas as pd
 import pathlib
 
 
-def annuity(n,r):
+def annuity(r,n):
     """ Calculate the annuity factor for an asset with lifetime n years and
     discount rate  r """
 
@@ -58,7 +58,7 @@ class DataLoader:
         costs = costs.value.unstack().fillna(defaults)
 
         # Set OCGT values to gas values
-        costs.at["OCGT", "fuel"] = costs.at["gas", "fuel"]
+        costs.at["OCGT", "fuel"] = 35 # costs.at["gas", "fuel"]
         costs.at["OCGT", "CO2 intensity"] = costs.at["gas", "CO2 intensity"]
 
         # Calculate marginal costs

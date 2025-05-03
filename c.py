@@ -2,6 +2,7 @@ from data_loader import DataLoader
 from a import create_network
 import results_plotter as plot
 import numpy as np
+import matplotlib.pyplot as plt
 
 weather_years = [1980,1985,1990,1995,2000,2010,2015]
 
@@ -22,8 +23,12 @@ for w_year in weather_years:
             sense="<=",
             constant=20e6)
     network.optimize()
-
-    mixes += [[network.generators_t.p[label].sum() for label in plot.LABELS]]
+    mix = []
+    for ix, gen in enumerate(plot.REFERENCES['GENERATORS']):
+        mix += [network.generators.p_nom_opt[gen]]
+    for ix, link in enumerate(plot.REFERENCES['LINKS']):
+        mix += [network.links.p_nom_opt[link]]
+    mixes += [mix]
 
 print("Mixes: ", np.array(mixes).T)
 

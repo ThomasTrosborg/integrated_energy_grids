@@ -27,12 +27,12 @@ def simulate_tests(network: pypsa.Network, n_opts: int = 10):
         network.optimize()
         mix = []
         for ix, gen in enumerate(plot.REFERENCES['GENERATORS']):
-            mix += [network.generators_t.p[gen].sum()]
+            mix += [network.generators.p_nom_opt[gen]]
         for ix, link in enumerate(plot.REFERENCES['LINKS']):
-            mix += [-network.links_t.p1[link].sum()]
+            mix += [network.links.p_nom_opt[link]]
         mixes += [mix]
 
-    plot.plot_generation_mixes(mixes, co2_limits, filename="b_co2_limit.png")
+    plot.plot_capacity_variation_under_varying_co2_limits(mixes, co2_limits, filename="b_co2_limit.png")
 
 
 if __name__ == '__main__':

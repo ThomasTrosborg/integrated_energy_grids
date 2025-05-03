@@ -79,7 +79,7 @@ def plot_duration_curves(network, filename: str | None = None):
         colors += [COLORS['GENERATORS'][ix]]
         labels += [LABELS['GENERATORS'][ix]]
     for ix, link in enumerate(REFERENCES['LINKS']):
-        dur_curves += [-network.links_t.p1[link].sort_values(ascending=False).values]
+        dur_curves += [-network.links_t.p1[link].sort_values(ascending=True).values]
         colors += [COLORS['LINKS'][ix]]
         labels += [LABELS['LINKS'][ix]]
     
@@ -98,7 +98,7 @@ def plot_duration_curves(network, filename: str | None = None):
 
     plt.show()
 
-def plot_generation_mixes(network_sols, co2_limits, filename: str | None = None):
+def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, filename: str | None = None):
     colors = []
     labels = []
     for ix, gen in enumerate(REFERENCES['GENERATORS']):
@@ -107,15 +107,16 @@ def plot_generation_mixes(network_sols, co2_limits, filename: str | None = None)
     for ix, link in enumerate(REFERENCES['LINKS']):
         colors += [COLORS['LINKS'][ix]]
         labels += [LABELS['LINKS'][ix]]
-        
+    
     mixes = np.array(network_sols).T
     for ix, label in enumerate(labels):
         plt.plot(co2_limits, mixes[ix], '--bo', label=label, color=colors[ix])
     plt.xlabel(r"CO2 limit (Mt CO$_2$)")
     plt.xticks(co2_limits, [str(int(x/1e6)) for x in co2_limits])
-    plt.ylabel(r"Generation (MWh)")
+    plt.ylabel(r"Capacity (MW)")
+    plt.ylim(0, 0.5 * max(mixes.flatten()))
     plt.legend()
-    plt.title(r'Generation mixes under emissions limitations')
+    plt.title(r'Capacity mixes under emissions limitations')
 
     if filename is not None: save_figure(filename)
 
@@ -123,9 +124,14 @@ def plot_generation_mixes(network_sols, co2_limits, filename: str | None = None)
 
 
 def plot_weather_variability(network_sols, filename: str = None):
-
-    labels = ['onshorewind', 'solar', 'OCGT']
-    colors = ['blue', 'orange', 'brown']
+    colors = []
+    labels = []
+    for ix, gen in enumerate(REFERENCES['GENERATORS']):
+        colors += [COLORS['GENERATORS'][ix]]
+        labels += [LABELS['GENERATORS'][ix]]
+    for ix, link in enumerate(REFERENCES['LINKS']):
+        colors += [COLORS['LINKS'][ix]]
+        labels += [LABELS['LINKS'][ix]]
     mixes = np.array(network_sols)
     boxprops = dict(color='black')  # Default box properties
     medianprops = dict(color='red')  # Default median line properties
@@ -143,9 +149,9 @@ def plot_weather_variability(network_sols, filename: str = None):
     plt.xticks(ticks=range(1, len(labels) + 1), labels=labels)
 
     plt.xlabel(r"Generator technology")
-    plt.ylabel(r"Mean Capacity (MW)")
+    plt.ylabel(r"Capacity Variation (MW)")
     plt.legend()
-    plt.title(r'Average generation mixes using different weather years')
+    plt.title(r'Capacity mixes using different weather years')
 
     if filename is not None: save_figure(filename)
     plt.show()
