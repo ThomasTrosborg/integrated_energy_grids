@@ -55,7 +55,7 @@ def cop(t_source, t_sink=55):
     delta_t = t_sink - t_source
     return 6.81 - 0.121 * delta_t + 0.00063 * delta_t**2
 
-def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, cop_data):
+def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, data:DataLoader):
     """
     Create the heat sector in the network.
     
@@ -73,11 +73,15 @@ def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, cop_data)
     n.add("Load", "heating demand", bus="heat bus", p_set=heat_demand_profile.values)
     
     # Add a link for the heat pump
-    heat_pump_marginal_cost = 2.6561 # €/MWh_th
-    heat_pump_capital_cost = 906.0988*1000 * (annuity(25, 0.07) + 0.002336)  # €/MW
-    n.add("Link", "heat pump", bus0="electricity bus", bus1="heat ESP",
-           p_nom_extendable=True, efficiency=cop_data,
-           capital_cost=heat_pump_capital_cost, marginal_cost=heat_pump_marginal_cost)
+    n.add("Link",
+        "heat pump",
+        bus0="electricity bus",
+        bus1="heat ESP",
+        p_nom_extendable=True,
+        efficiency=cop(load_temperature_data().PRT.values),
+        capital_cost=data.costs.at["central air-sourced heat pump", "capital_cost"],
+        marginal_cost=data.costs.at["central air-sourced heat pump", "marginal_cost"],
+    )
     
     # Add a multilink for CHP
     n.add("Bus", "gas")
@@ -86,10 +90,6 @@ def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, cop_data)
     # this way gas supply is unlimited
     n.add("Store", "gas", e_initial=1e6, e_nom=1e6, bus="gas") 
 
-    gas_cost = 4  # €/MWh_th
-    chp_capital_cost = 906.0988*1000 * (annuity(25, 0.07) + 0.033214)  # €/MW
-    fuel_cost = 21.6 # in €/MWh_th
-    chp_marginal_cost = 4.4445 + fuel_cost # €/MWh_th
     n.add(
         "Link",
         "CHP",
@@ -97,10 +97,10 @@ def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, cop_data)
         bus1="electricity",
         bus2="heat",
         p_nom_extendable=True,
-        marginal_cost=chp_marginal_cost,
-        capital_cost=chp_capital_cost,
-        efficiency=0.41,
-        efficiency2=0.41,
+        capital_cost=data.costs.at["central gas CHP CC", "capital_cost"],
+        marginal_cost=data.costs.at["central gas CHP CC", "marginal_cost"],
+        efficiency=data.costs.at["central gas CHP CC", "efficiency"],
+        efficiency2=data.costs.at["central gas CHP CC", "efficiency"],
     )
 
     return n
