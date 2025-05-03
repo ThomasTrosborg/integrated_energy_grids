@@ -37,7 +37,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             p_set=data.p_d[neighbor].values,
         )
 
-    multiplier = 0.5 # scaling factor for production in the neighboring countries
+    multiplier = 1 # scaling factor for production in the neighboring countries
 
     network.add("Carrier", "nuke", co2_emissions=0) # in t_CO2/MWh_th
     network.add(
@@ -45,7 +45,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "FRA nuke",
         bus="FRA",
         p_nom_extendable=False, # capacity is fixed
-        p_nom=61.4 * 1000 * multiplier, 
+        p_nom=61.4 * 1000 * multiplier,
         carrier="nuke",
         capital_cost=data.costs.at["nuclear", "capital_cost"],
         marginal_cost=data.costs.at["nuclear", "marginal_cost"],
@@ -151,13 +151,16 @@ if __name__ == '__main__':
 
     # Create the network
     network = create_network(data)
-    # network = add_storage(network, data)
+    network = add_storage(network, data)
     # network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
     network = add_neighbors(network, data)
 
     # Optimize the network
     network.optimize()
     network.plot(margin=0.4)
-    network.generators.p_nom.div(10^3).plot.barh()
+    plt.show()
+    network.generators.p_nom_opt.div(10**3).plot.barh()
+    plt.show()
+    plot.plot_electricity_mix(network) #, filename="f_electricity_mix.png")
 
     print(0)

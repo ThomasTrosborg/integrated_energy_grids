@@ -110,6 +110,15 @@ def create_network(data: DataLoader):
     )
     
     network.add(
+        "Store",
+        "DamReservoir",
+        bus = "DamWater",
+        e_nom = data.hydro_capacities["dammed_hydro_storage"].values[0],
+        e_cyclic = True,
+        capital_cost = 0,
+    )
+
+    network.add(
         "Link",
         "HDAM",
         bus0="DamWater",

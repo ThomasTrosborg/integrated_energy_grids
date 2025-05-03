@@ -103,14 +103,6 @@ def add_battery_storage(network: pypsa.Network, data: DataLoader):
 
 def add_hydro_storages(network: pypsa.Network, data: DataLoader):
     network.add(
-        "Store",
-        "DamReservoir",
-        bus = "DamWater",
-        e_nom = data.hydro_capacities["dammed_hydro_storage"].values[0],
-        e_cyclic = True,
-        capital_cost = 0,
-    )
-    network.add(
         "Bus", 
         "PumpedHydro",
         y = data.coordinates[data.country][0],
