@@ -1,6 +1,5 @@
 import pypsa
 import numpy as np
-import matplotlib.pyplot as plt
 from data_loader import DataLoader
 from a import create_network, annuity
 from b import add_co2_constraint, create_co2_limits
@@ -26,7 +25,6 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             bus0="electricity bus",
             bus1=neighbor,
             s_nom_extendable=True, # capacity is optimised
-            # p_min_pu=-1,
             r=0.02, # reactance [ohm/km]
             x=0.3, # resistance [ohm/km]
             length=length[neighbor], # length [km] between country a and country b
@@ -124,16 +122,9 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             x = data.coordinates["PRT"][1],)
     network.add( # The inflow of rainwater to the dam is modeled as a generator
         "Generator",
-<<<<<<< HEAD
         "PRT Rain to DamWater",
         bus = "PRT DamWater",
         p_nom = max(data.cf_hydro_PRT.values), 
-=======
-        "Rain to DamWater PT",
-        bus = "DamWater PT",
-        p_nom_extendable=False, # capacity is fixed
-        p_nom = max(data.cf_hydro_PRT.values),
->>>>>>> df40e15cfd904c952095c39a797c1751f333d0ff
         carrier = "Water",
         capital_cost = 0,
         marginal_cost = 0,
@@ -173,7 +164,7 @@ if __name__ == '__main__':
 
     # Create the network
     network = create_network(data)
-    #network = add_storage(network, data)
+    network = add_storage(network, data)
     # network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
     network = add_neighbors(network, data)
 
@@ -181,16 +172,9 @@ if __name__ == '__main__':
     network.optimize()
     network.plot(margin=0.4)
     plt.show()
-<<<<<<< HEAD
 
-    print(network.loads.groupby("bus").p_set.sum())
-
-    network.generators.p_nom_opt.div(1e3).plot.barh()
-    plt.show()
-=======
     network.generators.p_nom_opt.div(10**3).plot.barh()
     plt.show()
     plot.plot_electricity_mix(network) #, filename="f_electricity_mix.png")
->>>>>>> df40e15cfd904c952095c39a797c1751f333d0ff
 
     print(0)
