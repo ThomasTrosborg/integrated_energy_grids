@@ -1,6 +1,6 @@
 import pypsa
 from data_loader import DataLoader
-from a import create_network, annuity
+from a import create_network
 from b import add_co2_constraint, create_co2_limits
 import results_plotter as plot
 
@@ -26,7 +26,6 @@ def add_hydrogen(network: pypsa.Network, data: DataLoader):
         e_cyclic = True,
         capital_cost=data.costs.at["hydrogen storage underground", "capital_cost"],
         marginal_cost=data.costs.at["hydrogen storage underground", "marginal_cost"],
-        efficiency=data.costs.at["hydrogen storage underground", "efficiency"],
     )
 
     #Add the link "H2 Electrolysis" that transport energy from the electricity bus (bus0) to the H2 bus (bus1)
@@ -117,7 +116,7 @@ def add_hydro_storages(network: pypsa.Network, data: DataLoader):
         e_cyclic = True,
         capital_cost = 0,
     )
-    capital_cost_hydro = annuity(80, data.r)*2000000*(1+0.01) # in €/MW
+
     network.add(
         "Link",
         "PumpedHydroTurbine",
