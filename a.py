@@ -1,18 +1,9 @@
 import pandas as pd
 import pypsa
-from data_loader import DataLoader
+from data_loader import DataLoader, annuity
 import results_plotter as plot
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="pypsa")
-
-def annuity(n,r):
-    """ Calculate the annuity factor for an asset with lifetime n years and
-    discount rate  r """
-
-    if r > 0:
-        return r/(1. - 1./(1.+r)**n)
-    else:
-        return 1/n
 
 def create_network(data: DataLoader):
     # Create a new PyPSA network
@@ -44,7 +35,6 @@ def create_network(data: DataLoader):
     )
 
     # add onshore wind generator
-    capital_cost_onshorewind = annuity(30, data.r)*910000*(1+0.033) # in €/MW
     network.add(
         "Generator",
         "onshore wind",
@@ -52,13 +42,12 @@ def create_network(data: DataLoader):
         p_nom_extendable=True,
         carrier="onshore wind",
         #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
-        capital_cost = capital_cost_onshorewind,
-        marginal_cost = 0,
+        capital_cost=data.costs.at["onwind", "capital_cost"],
+        marginal_cost=data.costs.at["onwind", "marginal_cost"],
         p_max_pu = data.cf_onw[data.country].values,
     )
 
     # add offshore wind generator
-    capital_cost_offshorewind = annuity(25, data.r)*2506000*(1+0.03) # in €/MW
     network.add(
         "Generator",
         "offshore wind",
@@ -66,13 +55,12 @@ def create_network(data: DataLoader):
         p_nom_extendable=True,
         carrier="offshore wind",
         #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
-        capital_cost = capital_cost_offshorewind,
-        marginal_cost = 0,
+        capital_cost=data.costs.at["offwind", "capital_cost"],
+        marginal_cost=data.costs.at["offwind", "marginal_cost"],
         p_max_pu = data.cf_onw[data.country].values, #TODO use offshore wind data
     )
 
     # add solar PV generator
-    capital_cost_solar = annuity(25,data.r)*425000*(1+0.03) # in €/MW
     network.add(
         "Generator",
         "solar",
@@ -80,16 +68,12 @@ def create_network(data: DataLoader):
         p_nom_extendable=True,
         carrier="solar",
         #p_nom_max=1000, # maximum capacity can be limited due to environmental constraints
-        capital_cost = capital_cost_solar,
-        marginal_cost = 0,
+        capital_cost=data.costs.at["solar", "capital_cost"],
+        marginal_cost=data.costs.at["solar", "marginal_cost"],
         p_max_pu = data.cf_solar[data.country].values,
     )
 
     # add OCGT (Open Cycle Gas Turbine) generator
-    capital_cost_OCGT = annuity(25, data.r)*560000*(1+0.033) # in €/MW
-    fuel_cost = 21.6 # in €/MWh_th
-    efficiency = 0.39 # MWh_elec/MWh_th
-    marginal_cost_OCGT = fuel_cost/efficiency # in €/MWh_el
     network.add(
         "Generator",
         "OCGT",
@@ -97,8 +81,9 @@ def create_network(data: DataLoader):
         p_nom_extendable=True,
         carrier="gas",
         #p_nom_max=1000,
-        capital_cost = capital_cost_OCGT,
-        marginal_cost = marginal_cost_OCGT,
+        capital_cost=data.costs.at["OCGT", "capital_cost"],
+        marginal_cost=data.costs.at["OCGT", "marginal_cost"],
+        efficiency=data.costs.at["OCGT", "efficiency"],
     )
 
     # Dammed hydro generator as a run of river generator. This is a simplification.
@@ -112,6 +97,7 @@ def create_network(data: DataLoader):
         x = data.coordinates[data.country][1],
         carrier = "Water",
     )
+
     network.add( # The inflow of rainwater to the dam is modeled as a generator
         "Generator",
         "Rain to DamWater",
@@ -122,16 +108,16 @@ def create_network(data: DataLoader):
         marginal_cost = 0,
         p_max_pu = data.cf_hydro.values/max(data.cf_hydro.values),
     )
-    capital_cost_hydro = annuity(80, data.r)*2000000*(1+0.01) # in €/MW
+    
     network.add(
         "Link",
         "HDAM",
         bus0="DamWater",
         bus1="electricity bus",
         p_nom=data.hydro_capacities['dammed_hydro_power'].values[0],
-        capital_cost = capital_cost_hydro,
-        marginal_cost = 0,
-        efficiency = 0.95, # MWh_elec/MWh_potential_energy
+        capital_cost=data.costs.at["hydro", "capital_cost"],
+        marginal_cost=data.costs.at["hydro", "marginal_cost"],
+        efficiency=data.costs.at["hydro", "efficiency"],
     )
     
     return network

@@ -20,11 +20,13 @@ def add_hydrogen(network: pypsa.Network, data: DataLoader):
     #Connect the store to the bus
     network.add(
         "Store",
-        "H2 Tank",
+        "H2 Storage",
         bus = "H2",
         e_nom_extendable = True,
         e_cyclic = True,
-        capital_cost = 0 # annuity(25, 0.07)*57000*(1+0.011),
+        capital_cost=data.costs.at["hydrogen storage underground", "capital_cost"],
+        marginal_cost=data.costs.at["hydrogen storage underground", "marginal_cost"],
+        efficiency=data.costs.at["hydrogen storage underground", "efficiency"],
     )
 
     #Add the link "H2 Electrolysis" that transport energy from the electricity bus (bus0) to the H2 bus (bus1)
@@ -35,8 +37,9 @@ def add_hydrogen(network: pypsa.Network, data: DataLoader):
         bus0 = "electricity bus",
         bus1 = "H2",
         p_nom_extendable = True,
-        efficiency = 0.8,
-        capital_cost = 0 # annuity(25, 0.07)*600000*(1+0.05),
+        capital_cost=data.costs.at["electrolysis", "capital_cost"],
+        marginal_cost=data.costs.at["electrolysis", "marginal_cost"],
+        efficiency=data.costs.at["electrolysis", "efficiency"],
     )
 
     #Add the link "H2 Fuel Cell" that transports energy from the H2 bus (bus0) to the electricity bus (bus1)
@@ -47,8 +50,9 @@ def add_hydrogen(network: pypsa.Network, data: DataLoader):
         bus0 = "H2",
         bus1 = "electricity bus",
         p_nom_extendable = True,
-        efficiency = 0.58,
-        capital_cost = 0 # annuity(10, 0.07)*1300000*(1+0.05),
+        capital_cost=data.costs.at["fuel cell", "capital_cost"],
+        marginal_cost=data.costs.at["fuel cell", "marginal_cost"],
+        efficiency=data.costs.at["fuel cell", "efficiency"],
     )
     return network
 
@@ -70,7 +74,7 @@ def add_battery_storage(network: pypsa.Network, data: DataLoader):
         bus = "Battery",
         e_nom_extendable = True,
         e_cyclic = True,
-        capital_cost = annuity(15, 0.07)*150000*0.9, # Converted from $ to € and from kWh to MWh, assuming 10 years lifetime
+        capital_cost=data.costs.at["battery storage", "capital_cost"],
     )
 
     # Add a link for the battery storage
@@ -80,8 +84,9 @@ def add_battery_storage(network: pypsa.Network, data: DataLoader):
         bus0 = "electricity bus",
         bus1 = "Battery",
         p_nom_extendable = True,
-        efficiency = 0.9,
-        capital_cost = annuity(15, 0.07)*300000*0.9*0.5,
+        capital_cost=data.costs.at["battery inverter", "capital_cost"]/2,
+        marginal_cost=data.costs.at["battery inverter", "marginal_cost"],
+        efficiency=data.costs.at["battery inverter", "efficiency"],
     )
 
     network.add(
@@ -90,8 +95,9 @@ def add_battery_storage(network: pypsa.Network, data: DataLoader):
         bus0 = "Battery",
         bus1 = "electricity bus",
         p_nom_extendable = True,
-        efficiency = 0.9,
-        capital_cost = annuity(15, 0.07)*300000*0.9*0.5,
+        capital_cost=data.costs.at["battery inverter", "capital_cost"]/2,
+        marginal_cost=data.costs.at["battery inverter", "marginal_cost"],
+        efficiency=data.costs.at["battery inverter", "efficiency"],
     )
     return network
 
@@ -126,8 +132,9 @@ def add_hydro_storages(network: pypsa.Network, data: DataLoader):
         bus0 = "PumpedHydro",
         bus1 = "electricity bus",
         p_nom = data.hydro_capacities["pumped_hydro_power"].values[0],
-        efficiency = 0.95,
-        capital_cost = capital_cost_hydro/2,
+        capital_cost=data.costs.at["PHS", "capital_cost"]/2,
+        marginal_cost=data.costs.at["PHS", "marginal_cost"],
+        efficiency=data.costs.at["PHS", "efficiency"],
     )
     network.add(
         "Link",
@@ -135,8 +142,9 @@ def add_hydro_storages(network: pypsa.Network, data: DataLoader):
         bus0 = "electricity bus",
         bus1 = "PumpedHydro",
         p_nom = data.hydro_capacities["pumped_hydro_power"].values[0],
-        efficiency = 0.95,
-        capital_cost = capital_cost_hydro/2,
+        capital_cost=data.costs.at["PHS", "capital_cost"]/2,
+        marginal_cost=data.costs.at["PHS", "marginal_cost"],
+        efficiency=data.costs.at["PHS", "efficiency"],
     )
     return network
 
