@@ -32,7 +32,7 @@ def create_network(data: DataLoader):
         "electricity bus", 
         y = data.coordinates[data.country][0],
         x = data.coordinates[data.country][1],
-        carrier="AC",
+        carrier = "AC",
     )
 
     # add load to the bus
