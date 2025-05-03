@@ -118,11 +118,11 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
     # In reality, dammed hydro can store energy and is therefore a storage generator.
     # We will introduce this in the following exercises.
     network.add("Carrier", "Water")
-    network.add("Bus", "DamWater PT", carrier = "Water")
+    network.add("Bus", "DamWater PRT", carrier = "Water")
     network.add( # The inflow of rainwater to the dam is modeled as a generator
         "Generator",
-        "Rain to DamWater PT",
-        bus = "DamWater PT",
+        "PRT Rain to DamWater",
+        bus = "DamWater PRT",
         p_nom_extendable=False, # capacity is fixed
         p_nom = max(data.cf_hydro_PRT.values),
         carrier = "Water",
@@ -155,12 +155,12 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
 if __name__ == '__main__':
     data = DataLoader(country="ESP", discount_rate=0.07)
 
-    co2_limit = 0
+    co2_limit = 50e6 # 50 MT CO2 limit
 
     # Create the network
     network = create_network(data)
     network = add_storage(network, data)
-    # network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
+    network = add_co2_constraint(network, co2_limit)
     network = add_neighbors(network, data)
 
     # Optimize the network
