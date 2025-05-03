@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pathlib
 import numpy as np
 import pypsa
-from typing import List, Tuple
+from typing import List
 
 REFERENCES  = {'GENERATORS' : ['onshore wind', 'solar', 'OCGT'],
                'LINKS'      : ['HDAM'],
