@@ -3,6 +3,7 @@ import pathlib
 import numpy as np
 import pypsa
 from typing import List
+from brokenaxes import brokenaxes
 
 import seaborn as sns
 
@@ -108,7 +109,7 @@ def plot_duration_curves(network, filename: str | None = None):
 
     plt.show()
 
-def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, filename: str | None = None):
+def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, system_costs, filename: str | None = None):
     colors = []
     labels = []
     for ix, gen in enumerate(REFERENCES['GENERATORS']):
@@ -118,15 +119,24 @@ def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, f
         colors += [COLORS['LINKS'][ix]]
         labels += [LABELS['LINKS'][ix]]
     
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax2 = ax.twinx()
+    ax2.plot(co2_limits, system_costs, 'r--', label='System cost', color='black')
+    ax2.set_ylabel('System cost (M€)')
+
     mixes = np.array(network_sols).T
+
     for ix, label in enumerate(labels):
-        plt.plot(co2_limits, mixes[ix]*1e-3, '--bo', label=label, color=colors[ix])
-    plt.xlabel(r"CO2 limit (Mt CO$_2$)")
-    plt.xticks(co2_limits, [str(int(x/1e6)) for x in co2_limits])
-    plt.ylabel(r"Capacity (GW)")
-    plt.ylim(0, 0.5 * max(mixes.flatten()))
-    plt.legend()
-    plt.title(r'Capacity mixes under emissions limitations')
+        ax.plot(co2_limits, mixes[ix]*1e-3, '--bo', label=label, color=colors[ix])
+    ax.set_xlabel(r"CO2 limit (Mt CO$_2$)")
+    ax.set_xticks(co2_limits, [str(int(x/1e6)) for x in co2_limits])
+    ax.set_ylabel(r"Capacity (GW)")
+    
+    h, l = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax2.legend(h + h2, l + l2, loc='best', fancybox=True)
+
+    ax.title(r'Capacity mixes under emissions limitations')
 
     if filename is not None: save_figure(filename)
 
@@ -212,9 +222,9 @@ def plot_storage_day(network: pypsa.Network, filename: str | None = None):
 def plot_storage_season(networks: List[pypsa.Network], filename: str | None = None):
     for network in networks:
         plt.plot(
-            network.stores_t.e['H2 Tank'],
+            network.stores_t.e['H2 Storage'],
             color='black', 
-            label='H2 stored',
+            label=r'H$_2$ stored',
         )
         plt.legend(fancybox=True, shadow=True, loc='best')
         plt.xlabel("date")
