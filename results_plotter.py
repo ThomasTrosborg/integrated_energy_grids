@@ -3,6 +3,16 @@ import pathlib
 import numpy as np
 import pypsa
 from typing import List, Tuple
+import seaborn as sns
+
+sns.set_theme(style="whitegrid")
+# Set the default font size for all plots
+plt.rcParams.update({'font.size': 12})
+plt.rcParams['axes.titlesize'] = 14
+plt.rcParams['axes.labelsize'] = 12
+plt.rcParams['xtick.labelsize'] = 10
+plt.rcParams['ytick.labelsize'] = 10
+
 
 REFERENCES  = {'GENERATORS' : ['onshore wind', 'solar', 'OCGT'],
                'LINKS'      : ['HDAM'],
@@ -110,10 +120,10 @@ def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, f
     
     mixes = np.array(network_sols).T
     for ix, label in enumerate(labels):
-        plt.plot(co2_limits, mixes[ix], '--bo', label=label, color=colors[ix])
+        plt.plot(co2_limits, mixes[ix]*1e-3, '--bo', label=label, color=colors[ix])
     plt.xlabel(r"CO2 limit (Mt CO$_2$)")
     plt.xticks(co2_limits, [str(int(x/1e6)) for x in co2_limits])
-    plt.ylabel(r"Capacity (MW)")
+    plt.ylabel(r"Capacity (GW)")
     plt.ylim(0, 0.5 * max(mixes.flatten()))
     plt.legend()
     plt.title(r'Capacity mixes under emissions limitations')

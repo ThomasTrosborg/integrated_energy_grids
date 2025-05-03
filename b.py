@@ -42,4 +42,4 @@ if __name__ == '__main__':
     network.optimize.create_model()
     # Spain's CO2 emissions data: https://www.iea.org/countries/spain/emissions
     # It is at 49 MT CO2 in 2022, down from 118 MT in 2007. Was at 40 MT in 2020.
-    simulate_tests(network, n_opts=10)
+    simulate_tests(network, n_opts=2)
