@@ -22,8 +22,8 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             f"{data.country}-{neighbor}",
             bus0="electricity bus",
             bus1=neighbor,
-            p_nom_extendable=True, # capacity is optimised
-            p_min_pu=-1,
+            s_nom_extendable=True, # capacity is optimised
+            # p_min_pu=-1,
             r=0.02, # reactance [ohm/km]
             x=0.3, # resistance [ohm/km]
             length=length[neighbor], # length [km] between country a and country b
@@ -37,7 +37,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             p_set=data.p_d[neighbor].values,
         )
 
-    multiplier = 1.5 # scaling factor for production in the neighboring countries
+    multiplier = 0.5 # scaling factor for production in the neighboring countries
 
     network.add("Carrier", "nuke", co2_emissions=0) # in t_CO2/MWh_th
     network.add(
@@ -122,6 +122,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "Generator",
         "Rain to DamWater PT",
         bus = "DamWater PT",
+        p_nom_extendable=False, # capacity is fixed
         p_nom = 4.6 * 1000, 
         carrier = "Water",
         capital_cost = 0,
@@ -134,6 +135,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         "HDAM PT",
         bus0="DamWater PT",
         bus1="PRT",
+        p_nom_extendable=False, # capacity is fixed
         p_nom= 4.6 * 1000, 
         capital_cost=data.costs.at["hydro", "capital_cost"],
         marginal_cost=data.costs.at["hydro", "marginal_cost"],
@@ -149,12 +151,13 @@ if __name__ == '__main__':
 
     # Create the network
     network = create_network(data)
-    network = add_storage(network, data)
+    # network = add_storage(network, data)
     # network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
     network = add_neighbors(network, data)
 
     # Optimize the network
     network.optimize()
     network.plot(margin=0.4)
+    network.generators.p_nom.div(10^3).plot.barh()
 
     print(0)
