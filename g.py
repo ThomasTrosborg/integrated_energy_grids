@@ -2,9 +2,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import pypsa
-import os
 from data_loader import DataLoader
-from a import annuity
+from a import create_network
+from b import add_co2_constraint
+from d import add_storage
+from f import add_neighbors
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="pypsa")
 
@@ -129,3 +131,15 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid()
     plt.show()
+
+    data = DataLoader(country="ESP", discount_rate=0.07)
+
+    # Create the network
+    network = create_network(data)
+    network = add_storage(network, data)
+    network = add_co2_constraint(network, 1e6) # 1 MT CO2 limit
+    network = add_neighbors(network, data)
+
+    # Optimize the network
+    network.optimize()
+    network.plot(margin=0.4)

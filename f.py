@@ -131,10 +131,17 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
         marginal_cost = 0,
         p_max_pu = data.cf_hydro_PRT.values/max(data.cf_hydro_PRT.values),
     )
-    
+    network.add(
+        "Store",
+        "DamReservoir PRT",
+        bus = "DamWater PRT",
+        e_nom = data.hydro_capacities["dammed_hydro_storage"].values[0],
+        e_cyclic = True,
+        capital_cost = 0,
+    )
     network.add(
         "Link",
-        "HDAM PT",
+        "PRT HDAM",
         bus0="PRT DamWater",
         bus1="PRT",
         p_nom= 4.6 * 1000, 
