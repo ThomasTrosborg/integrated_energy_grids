@@ -1,6 +1,17 @@
 import pandas as pd
 import pathlib
 
+
+def annuity(n,r):
+    """ Calculate the annuity factor for an asset with lifetime n years and
+    discount rate  r """
+
+    if r > 0:
+        return r/(1. - 1./(1.+r)**n)
+    else:
+        return 1/n
+
+
 class DataLoader:
     def __init__(
             self, 
@@ -9,7 +20,8 @@ class DataLoader:
             coordinates: dict = {'ESP': (40.8, -2.4), 'PRT': (38.74, -9.15), 'FRA': (47.1, 2.29)},
             discount_rate: float = 0.07, 
             weather_year: int = 2015,
-            ):
+            cost_year: int = 2030,
+        ):
         self.country = country
         self.neighbors = neighbors
         self.coordinates = coordinates
@@ -17,6 +29,7 @@ class DataLoader:
         self.weather_dates = pd.date_range(f'{weather_year}-01-01 00:00Z', f'{weather_year}-12-31 23:00Z', freq='h')
         self.r = discount_rate
         self.path = str(pathlib.Path(__file__).parent.resolve()) + "/"
+        self.read_costs(cost_year)
         self.read_electricity_demand()
         self.read_onshore_wind()
         # self.read_offshore_wind()
@@ -24,6 +37,38 @@ class DataLoader:
         self.read_hydro_capacities()
         self.read_hydro_inflows()
         self.read_hydro_inflows_PRT()
+
+    def read_costs(self, cost_year: int):
+        # Import data
+        url = f"https://raw.githubusercontent.com/PyPSA/technology-data/master/outputs/costs_{cost_year}.csv"
+        costs = pd.read_csv(url, index_col=[0, 1])
+        costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
+        costs.unit = costs.unit.str.replace("/kW", "/MW")
+
+        defaults = {
+            "FOM": 0,
+            "VOM": 0,
+            "efficiency": 1,
+            "fuel": 0,
+            "investment": 0,
+            "lifetime": 25,
+            "CO2 intensity": 0,
+            "discount rate": 0.07,
+        }
+        costs = costs.value.unstack().fillna(defaults)
+
+        # Set OCGT values to gas values
+        costs.at["OCGT", "fuel"] = costs.at["gas", "fuel"]
+        costs.at["OCGT", "CO2 intensity"] = costs.at["gas", "CO2 intensity"]
+
+        # Calculate marginal costs
+        costs["marginal_cost"] = costs["VOM"] + costs["fuel"] / costs["efficiency"]
+
+        # Calculate capital costs including annuity
+        annuity_ = costs.apply(lambda x: annuity(x["discount rate"], x["lifetime"]), axis=1)
+        costs["capital_cost"] = (annuity_ + costs["FOM"] / 100) * costs["investment"]
+
+        self.costs = costs
 
     def read_electricity_demand(self):
         """ Read electricity demand data from CSV file """
