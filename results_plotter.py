@@ -169,28 +169,42 @@ def plot_weather_variability(network_sols, filename: str = None):
     for ix, gen in enumerate(REFERENCES['GENERATORS']):
         colors += [COLORS['GENERATORS'][ix]]
         labels += [LABELS['GENERATORS'][ix]]
-    for ix, link in enumerate(REFERENCES['LINKS']):
-        colors += [COLORS['LINKS'][ix]]
-        labels += [LABELS['LINKS'][ix]]
     mixes = np.array(network_sols)
     boxprops = dict(color='black')  # Default box properties
     medianprops = dict(color='red')  # Default median line properties
 
+    fig, ax = plt.subplots()
+
     for i, color in enumerate(colors):
-        plt.boxplot(
+        ax.boxplot(
             mixes[:, i],
             positions=[i + 1],
             patch_artist=True,
             boxprops=dict(facecolor=color, color=color),
             medianprops=medianprops,
-            label=labels[i]
+            label=labels[i],
+            showmeans=True,
+            meanprops=dict(marker='o', markerfacecolor='blue', markersize=5, markeredgecolor='black'),
         )
 
-    plt.xticks(ticks=range(1, len(labels) + 1), labels=labels)
+    mean_handle = ax.plot([], [], color="blue", marker='o', linestyle='None',
+                         markersize=8, label='Mean')
+    median_handle = ax.plot([], [], color="red", linestyle='-', label='Median')
+    # Add legend to the plot
+    
 
+    plt.xticks(ticks=range(1, len(labels) + 1), labels=labels)
+    plt.ylim(0, 1.05 * max(mixes.flatten()))
     plt.xlabel(r"Generator technology")
     plt.ylabel(r"Capacity Variation (MW)")
-    plt.legend()
+
+    handles, labels = ax.get_legend_handles_labels()
+    handles.append(mean_handle)
+    labels.append('Mean')
+    handles.append(median_handle)
+    labels.append('Median')
+
+    plt.legend(handles=handles, labels=labels, loc='best', fancybox=True, shadow=True)
     plt.title(r'Capacity mixes using different weather years')
 
     if filename is not None: save_figure(filename)

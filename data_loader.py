@@ -112,8 +112,8 @@ class DataLoader:
 
         # Repeat inflow values to cover 2013–2022
         target_index = pd.date_range(
-            start='2013-01-01 00:00:00',
-            end='2023-01-01 23:00:00',
+            start='1983-01-01 00:00:00',
+            end='2023-01-02 23:00:00',
             freq='h',
             tz='UTC'
         )
@@ -126,7 +126,8 @@ class DataLoader:
         df_expanded = pd.DataFrame({'Inflow [MWh]': full_inflow*1000}) # Convert GWh to MWh
         df_expanded.index.name = 'datetime'
 
-        self.cf_hydro = df_expanded.loc[self.dates, 'Inflow [MWh]'] # Select only the dates we need
+        self.cf_hydro = df_expanded.loc[self.weather_dates, 'Inflow [MWh]']
+        self.cf_hydro= self.cf_hydro[~((self.cf_hydro.index.month == 2) & (self.cf_hydro.index.day == 29))] # Select only the dates we need
     
     def read_hydro_inflows_PRT(self):
         """Read hydro data from CSV file and expand it to hourly resolution for 2013–2022"""
