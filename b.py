@@ -5,8 +5,8 @@ import results_plotter as plot
 import numpy as np
 
 def create_co2_limits(n_opts: int = 10):
-    return np.array([50, 4, 0]) * 1e6
-    #return np.array([50, 20, 16, 12, 8, 4, 2, 0]) * 1e6 #tonCO2
+    #return np.array([50, 4, 0]) * 1e6
+    return np.array([50, 20, 16, 12, 8, 4, 2, 0]) * 1e6 #tonCO2
     # return np.append(np.array([50e6]), np.linspace(20e6, 0, n_opts-1)) #tonCO2
 
 def add_co2_constraint(network: pypsa.Network, co2_limit: float):

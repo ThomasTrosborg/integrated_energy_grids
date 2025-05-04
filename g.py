@@ -58,7 +58,7 @@ def cop(t_source, t_sink=55):
     delta_t = t_sink - t_source
     return 6.81 - 0.121 * delta_t + 0.00063 * delta_t**2
 
-def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, data:DataLoader):
+def couple_el_and_heat_sector(n:pypsa.Network, data:DataLoader):
     """
     Create the heat sector in the network.
     
@@ -69,12 +69,6 @@ def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, data:Data
     Returns:
         pypsa.Network: The updated PyPSA network object with the heat sector added.
     """
-    # Add a bus for the heat sector
-    n.add("Bus", "heat bus", carrier="heat", x=data.coordinates[data.country][0], y=data.coordinates[data.country][1])
-    
-    # Add a load for the heating demand
-    n.add("Load", "heating demand", bus="heat bus", p_set=heat_demand_profile.values)
-    
     # Add a link for the heat pump
     n.add("Link",
         "heat pump",
@@ -114,7 +108,7 @@ def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, data:Data
 
     return n
 
-def create_and_run_heat_network(data:DataLoader, heat_demand_profile:pd.Series):
+def create_non_coupled_el_and_heat_network(data:DataLoader, heat_demand_profile:pd.Series):
     """
     Create and run the heat network.
     
@@ -127,8 +121,8 @@ def create_and_run_heat_network(data:DataLoader, heat_demand_profile:pd.Series):
     """
     # Create the network
     n = create_network(data)
+    n = add_storage(n, data)
     n.add("Carrier", "heat")
-    n.add("Carrier", "biomass")
     # Add a bus for the heat sector
     n.add("Bus", "heat bus", carrier="heat", x=data.coordinates[data.country][0], y=data.coordinates[data.country][1])
     # Add a load for the heating demand
@@ -144,9 +138,6 @@ def create_and_run_heat_network(data:DataLoader, heat_demand_profile:pd.Series):
         marginal_cost=data.costs.at["biomass boiler", "marginal_cost"],
         efficiency=data.costs.at["biomass boiler", "efficiency"],
     )
-    
-    # Optimize the network
-    n.optimize()
     
     return n
 
@@ -165,31 +156,28 @@ if __name__ == "__main__":
     
     # Plot the heating demand profile
     plt.figure(figsize=(10, 5))
-    plt.plot(heating_demand_profile.index, heating_demand_profile.values, label='Heating Demand Profile From Temperature', alpha=0.5)
+    #plt.plot(heating_demand_profile.index, heating_demand_profile.values, label='Heating Demand Profile From Temperature', alpha=0.5)
     plt.plot(heating_demand_data.index, heating_demand_data.values, label='Heating Demand Data', alpha=0.5)
     plt.xlabel('Date')
     plt.ylabel('Heating Demand (MWh/h)')
-    plt.title('Heating Demand Profile Generation Comparison')
-    plt.legend()
+    plt.title('Heating Demand Profile')
+    plt.xlim(heating_demand_profile.index[0], heating_demand_profile.index[-1])
+    #plt.legend()
     plt.grid()
-    plt.show()
+    plot.save_figure("heating_demand_profile.png")
+    plt.close()
 
     data = DataLoader(country="ESP", discount_rate=0.07)
 
     # Create the heat network
-    heat_network = create_and_run_heat_network(data, heating_demand_profile)
-    heat_network.plot(margin=0.4)
-    plt.show()
-    print("System cost for simple heating solution: ", heat_network.objective/1e6) # in million EUR
+    heat_network = create_non_coupled_el_and_heat_network(data, heating_demand_profile)
+    heat_network.optimize()
+    print("Combined system costs for simple heating solution: ", heat_network.objective/1e6) # in million EUR
 
     # Create the network
-    network = create_network(data)
-    network = add_storage(network, data)
-    # network = add_co2_constraint(network, 0) # 1 MT CO2 limit
-    # network = add_neighbors(network, data)
+    coupled_network = couple_el_and_heat_sector(heat_network, data)
+    coupled_network.optimize()
+    print("Combined system cost for coupled heating solution: ", heat_network.objective/1e6)
 
-    # Optimize the network
-    network.optimize()
-    
-    plot.plot_series(network) #, filename="d_storage_plot.png")
-    plot.plot_storage_season([network]) #, filename="d_storage_season_plot.png")
+    plot.plot_series(coupled_network) #, filename="d_storage_plot.png")
+    plot.plot_storage_season([coupled_network]) #, filename="d_storage_season_plot.png")

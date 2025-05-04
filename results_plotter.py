@@ -110,6 +110,8 @@ def plot_duration_curves(network, filename: str | None = None):
     plt.show()
 
 def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, system_costs, filename: str | None = None):
+    mixes = np.array(network_sols).T*1e-3 # in GW
+    
     colors = []
     labels = []
     for ix, gen in enumerate(REFERENCES['GENERATORS']):
@@ -118,30 +120,48 @@ def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, s
     for ix, link in enumerate(REFERENCES['LINKS']):
         colors += [COLORS['LINKS'][ix]]
         labels += [LABELS['LINKS'][ix]]
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax2 = ax.twinx()
-    ax2.plot(co2_limits, system_costs, 'r--', label='System cost', color='black')
-    ax2.set_ylabel('System cost (M€)')
+    fig, (ax_upper, ax_lower) = plt.subplots(2, 1, sharex=True, figsize=(8, 6),
+                               gridspec_kw={'height_ratios': [0.7, 2]})
+    ax_upper.grid(False)
+    ax_lower.grid(False)
+    ax_upper.spines['bottom'].set_visible(False)
+    ax_lower.spines['top'].set_visible(False)
+    ax_upper.tick_params(labelbottom=False)
+    d = .01  # size of diagonal lines
+    kwargs = dict(transform=ax_upper.transAxes, color='k', clip_on=False)
+    ax_upper.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
+    ax_upper.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
 
-    mixes = np.array(network_sols).T
+    kwargs.update(transform=ax_lower.transAxes)
+    ax_lower.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+    ax_lower.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
 
-    for ix, label in enumerate(labels):
-        ax.plot(co2_limits, mixes[ix]*1e-3, '--bo', label=label, color=colors[ix])
-    ax.set_xlabel(r"CO2 limit (Mt CO$_2$)")
-    ax.set_xticks(co2_limits, [str(int(x/1e6)) for x in co2_limits])
-    ax.set_ylabel(r"Capacity (GW)")
+    ax_lower.set_xlabel(r"CO2 limit (Mt CO$_2$)")
+    ax_lower.set_xticks(co2_limits, [str(int(x/1e6)) for x in co2_limits])
+
+    ylims = [[(0.9*np.max(mixes), 1.05*np.max(mixes)),  (0.9*np.max(system_costs), 1.1*np.max(system_costs))],
+             [(0, 0.25*np.max(mixes)),  (0, 0.25*np.max(system_costs))]]
+    for ix, ax in enumerate((ax_upper, ax_lower)):
+        ax2 = ax.twinx()
+        if ix == 1:
+            ax.set_ylabel('Capacity (GW)')
+            ax2.set_ylabel('System cost (M€)')
+
+        ax2.plot(co2_limits, system_costs, '--o', label='System cost', color='black')
+
+        for ix2, label in enumerate(labels):
+            ax.plot(co2_limits, mixes[ix2], '--o', label=label, color=colors[ix2])
+        
+        ax.set_ylim(ylims[ix][0])
+        ax2.set_ylim(ylims[ix][1])
     
     h, l = ax.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
-    ax2.legend(h + h2, l + l2, loc='best', fancybox=True)
-
-    ax.title(r'Capacity mixes under emissions limitations')
+    ax_lower.legend(h + h2, l + l2, loc='best', fancybox=True)
 
     if filename is not None: save_figure(filename)
 
-    plt.show()
-
+    plt.show() 
 
 def plot_weather_variability(network_sols, filename: str = None):
     colors = []
