@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pypsa
 from data_loader import DataLoader
+import results_plotter as plot
 from a import create_network
 from b import add_co2_constraint
 from d import add_storage
@@ -69,7 +70,7 @@ def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, data:Data
         pypsa.Network: The updated PyPSA network object with the heat sector added.
     """
     # Add a bus for the heat sector
-    n.add("Bus", "heat ESP", carrier="heat")
+    n.add("Bus", "heat bus", carrier="heat", x=data.coordinates[data.country][0], y=data.coordinates[data.country][1])
     
     # Add a load for the heating demand
     n.add("Load", "heating demand", bus="heat bus", p_set=heat_demand_profile.values)
@@ -78,7 +79,7 @@ def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, data:Data
     n.add("Link",
         "heat pump",
         bus0="electricity bus",
-        bus1="heat ESP",
+        bus1="heat bus",
         p_nom_extendable=True,
         efficiency=cop(load_temperature_data().PRT.values),
         capital_cost=data.costs.at["central air-sourced heat pump", "capital_cost"],
@@ -86,27 +87,68 @@ def create_heat_sector(n:pypsa.Network, heat_demand_profile:pd.Series, data:Data
     )
     
     # Add a multilink for CHP
-    n.add("Bus", "gas")
+    n.add("Bus", "biomass bus", carrier="biomass", x=data.coordinates[data.country][0], y=data.coordinates[data.country][1])
 
     # We add a gas store with energy capacity and an initial filling level much higher than the required gas consumption, 
     # this way gas supply is unlimited
-    n.add("Store", "gas", e_initial=1e6, e_nom=1e6, bus="gas") 
+    n.add("Generator",
+          "Biomass Supply",
+          carrier="biomass",
+          bus="biomass bus",
+          p_nom_extendable=True,
+          capital_cost=0,
+          ) 
 
     n.add(
         "Link",
         "CHP",
-        bus0="gas",
-        bus1="electricity",
-        bus2="heat",
+        bus0="biomass bus",
+        bus1="electricity bus",
+        bus2="heat bus",
         p_nom_extendable=True,
-        capital_cost=data.costs.at["central gas CHP CC", "capital_cost"],
-        marginal_cost=data.costs.at["central gas CHP CC", "marginal_cost"],
-        efficiency=data.costs.at["central gas CHP CC", "efficiency"],
-        efficiency2=data.costs.at["central gas CHP CC", "efficiency"],
+        capital_cost=data.costs.at["central solid biomass CHP CC", "capital_cost"],
+        marginal_cost=data.costs.at["central solid biomass CHP CC", "marginal_cost"],
+        efficiency=data.costs.at["central solid biomass CHP CC", "efficiency"],
+        efficiency2=data.costs.at["central solid biomass CHP CC", "efficiency"],
     )
 
     return n
 
+def create_and_run_heat_network(data:DataLoader, heat_demand_profile:pd.Series):
+    """
+    Create and run the heat network.
+    
+    Parameters:
+        data (DataLoader): The data loader object containing the data.
+        heat_demand_profile (pd.Series): The heating demand profile.
+    
+    Returns:
+        pypsa.Network: The optimized PyPSA network object.
+    """
+    # Create the network
+    n = create_network(data)
+    n.add("Carrier", "heat")
+    n.add("Carrier", "biomass")
+    # Add a bus for the heat sector
+    n.add("Bus", "heat bus", carrier="heat", x=data.coordinates[data.country][0], y=data.coordinates[data.country][1])
+    # Add a load for the heating demand
+    n.add("Load", "heating demand", bus="heat bus", p_set=heat_demand_profile.values)
+    #n.add("Gener", "BiomassStore", e_initial=1e6, e_nom=1e6, bus="biomass", capital_cost=0)
+    n.add(
+        "Generator",
+        "Biomass Boiler",
+        carrier="biomass",
+        bus="heat bus",
+        p_nom_extendable=True,
+        capital_cost=data.costs.at["biomass boiler", "capital_cost"],
+        marginal_cost=data.costs.at["biomass boiler", "marginal_cost"],
+        efficiency=data.costs.at["biomass boiler", "efficiency"],
+    )
+    
+    # Optimize the network
+    n.optimize()
+    
+    return n
 
 if __name__ == "__main__":
     # Load the heating demand data
@@ -134,12 +176,20 @@ if __name__ == "__main__":
 
     data = DataLoader(country="ESP", discount_rate=0.07)
 
+    # Create the heat network
+    heat_network = create_and_run_heat_network(data, heating_demand_profile)
+    heat_network.plot(margin=0.4)
+    plt.show()
+    print("System cost for simple heating solution: ", heat_network.objective/1e6) # in million EUR
+
     # Create the network
     network = create_network(data)
     network = add_storage(network, data)
-    network = add_co2_constraint(network, 1e6) # 1 MT CO2 limit
-    network = add_neighbors(network, data)
+    # network = add_co2_constraint(network, 0) # 1 MT CO2 limit
+    # network = add_neighbors(network, data)
 
     # Optimize the network
     network.optimize()
-    network.plot(margin=0.4)
+    
+    plot.plot_series(network) #, filename="d_storage_plot.png")
+    plot.plot_storage_season([network]) #, filename="d_storage_season_plot.png")

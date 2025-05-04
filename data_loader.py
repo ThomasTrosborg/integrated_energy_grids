@@ -60,6 +60,8 @@ class DataLoader:
         # Set OCGT values to gas values
         costs.at["OCGT", "fuel"] = 35 # costs.at["gas", "fuel"]
         costs.at["OCGT", "CO2 intensity"] = costs.at["gas", "CO2 intensity"]
+        costs.at["central solid biomass CHP CC", "fuel"] = costs.at["solid biomass", "fuel"]
+        #costs.at["central solid biomass CHP CC", "CO2 intensity"] = costs.at["solid biomass", "CO2 intensity"]
 
         # Calculate marginal costs
         costs["marginal_cost"] = costs["VOM"] + costs["fuel"] / costs["efficiency"]

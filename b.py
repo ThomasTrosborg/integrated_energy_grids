@@ -5,7 +5,9 @@ import results_plotter as plot
 import numpy as np
 
 def create_co2_limits(n_opts: int = 10):
-    return np.append(np.array([50e6]), np.linspace(20e6, 0, n_opts-1)) #tonCO2
+    return np.array([50, 4, 0]) * 1e6
+    #return np.array([50, 20, 16, 12, 8, 4, 2, 0]) * 1e6 #tonCO2
+    # return np.append(np.array([50e6]), np.linspace(20e6, 0, n_opts-1)) #tonCO2
 
 def add_co2_constraint(network: pypsa.Network, co2_limit: float):
     network.add(
@@ -22,6 +24,7 @@ def simulate_tests(network: pypsa.Network, n_opts: int = 10):
     co2_limits = create_co2_limits(n_opts)
 
     mixes = []
+    objectives = []
     for co2_limit in co2_limits:
         network = add_co2_constraint(network, co2_limit)
         network.optimize()
@@ -31,8 +34,9 @@ def simulate_tests(network: pypsa.Network, n_opts: int = 10):
         for ix, link in enumerate(plot.REFERENCES['LINKS']):
             mix += [network.links.p_nom_opt[link]]
         mixes += [mix]
-
-    plot.plot_capacity_variation_under_varying_co2_limits(mixes, co2_limits, filename="b_co2_limit.png")
+        objectives += [network.objective/1e6] # in million EUR
+    # Plot the results
+    plot.plot_capacity_variation_under_varying_co2_limits(mixes, co2_limits, objectives, filename="b_co2_limit.png")
 
 
 if __name__ == '__main__':
@@ -42,4 +46,4 @@ if __name__ == '__main__':
     network.optimize.create_model()
     # Spain's CO2 emissions data: https://www.iea.org/countries/spain/emissions
     # It is at 49 MT CO2 in 2022, down from 118 MT in 2007. Was at 40 MT in 2020.
-    simulate_tests(network, n_opts=2)
+    simulate_tests(network)
