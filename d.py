@@ -169,12 +169,12 @@ def compare_co2_limits(network: pypsa.Network, co2_limits: list):
 if __name__ == "__main__":
     data = DataLoader(country="ESP", discount_rate=0.07)
 
-    co2_limit = 0
+    co2_limit = 50e6
 
     # Create the network
     network = create_network(data)
     network = add_storage(network, data)
-    network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
+    # network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
 
     # Optimize the network
     network.optimize()

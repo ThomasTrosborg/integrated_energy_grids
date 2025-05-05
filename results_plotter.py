@@ -23,17 +23,19 @@ def save_figure(filename):
     plt.savefig(filepath, dpi=300)
 
 def plot_series(network, ts: int = 0, filename: str | None = None):
-    te = ts + 96
+    te = ts + 7*24
+    plt.figure(figsize=(10, 2.5))
     for ix, load in enumerate(REFERENCES['LOADS']):
         plt.plot(network.loads_t.p[load][ts:te], color=COLORS['LOADS'][ix], label=LABELS['LOADS'][ix])
     for ix, gen in enumerate(REFERENCES['GENERATORS']):
         plt.plot(network.generators_t.p[gen][ts:te], color=COLORS['GENERATORS'][ix], label=LABELS['GENERATORS'][ix])
     for ix, link in enumerate(REFERENCES['LINKS']):
         plt.plot(-network.links_t.p1[link][ts:te], color=COLORS['LINKS'][ix], label=LABELS['LINKS'][ix])
-    plt.legend(fancybox=True, shadow=True, loc='best')
-    plt.xlabel("Time")
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, ncol=5)
     plt.ylabel("MW")
-    plt.xticks(rotation=45)
+    plt.xlim(network.snapshots[ts], network.snapshots[te-1])
+    plt.ylim(0, 1.02 * network.loads_t.p[load].max())
+    plt.xticks(rotation=0)
 
     if filename is not None: save_figure(filename)
 
@@ -156,60 +158,44 @@ def plot_weather_variability(network_sols, filename: str = None):
     if filename is not None: save_figure(filename)
     plt.show()
 
-    
+
 def plot_storage_day(network: pypsa.Network, filename: str | None = None):
-    plt.plot(
-        network.loads_t.p['load'].groupby(network.snapshots.hour).mean(), 
-        color='black', 
+    network.generators_t.p[REFERENCES['GENERATORS']].groupby(network.snapshots.hour).mean().plot(drawstyle="steps-post") 
+    for store in ["DamWater", "PumpedHydro", "Battery", "H2"]:
+        charge = network.links.loc[network.links['bus0'] == store].index[0]
+        discharge = (network.links.loc[network.links['bus1'] == store].index[0] if store != "DamWater" else [])
+        plt.step(
+            x=network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().index,
+            y=(network.links_t.p1[discharge].groupby(network.snapshots.hour).mean() if store != "DamWater" else 0) - network.links_t.p0[charge].groupby(network.snapshots.hour).mean(), 
+            label=store,
+            where='post',
+        )
+    plt.fill_between(
+        x=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().index,
+        y1=network.loads_t.p['load'].groupby(network.snapshots.hour).mean(), 
+        color='grey', 
         label='demand',
+        alpha=0.5,
     )
-    plt.plot(
-        network.generators_t.p['onshore wind'].groupby(network.snapshots.hour).mean(), 
-        color='blue', 
-        label='onshore wind',
-    )
-    plt.plot(
-        network.generators_t.p['solar'].groupby(network.snapshots.hour).mean(), 
-        color='orange', 
-        label='solar',
-    )
-    plt.plot(
-        network.generators_t.p['OCGT'].groupby(network.snapshots.hour).mean(), 
-        color='brown', 
-        label='gas (OCGT)',
-    )
-    plt.plot(
-        network.links_t.p0['H2 Electrolysis'].groupby(network.snapshots.hour).mean(), 
-        color='green', 
-        label='Electrolysis',
-        linestyle='dotted',
-    )
-    plt.plot(
-        - network.links_t.p1['H2 Fuel Cell'].groupby(network.snapshots.hour).mean(), 
-        color='green', 
-        label='Fuel Cell',
-        linestyle='dashdot',
-    )
-    plt.legend(fancybox=True, shadow=True, loc='best')
+    plt.legend(fancybox=True, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.xlabel("Hour of the day")
     plt.ylabel("MW")
-    plt.xticks(rotation=45)
+    plt.xticks(np.arange(24), np.arange(24), rotation=45)
+    plt.xlim(
+        network.loads_t.p['load'].groupby(network.snapshots.hour).mean().index[0], 
+        network.loads_t.p['load'].groupby(network.snapshots.hour).mean().index[-1]+1,
+    )
 
-    if filename is not None: save_figure(filename)
+    # if filename is not None: save_figure(filename)
 
     plt.show()
 
-def plot_storage_season(networks: List[pypsa.Network], filename: str | None = None):
-    for network in networks:
-        plt.plot(
-            network.stores_t.e['H2 Tank'],
-            color='black', 
-            label='H2 stored',
-        )
-        plt.legend(fancybox=True, shadow=True, loc='best')
-        plt.xlabel("date")
-        plt.ylabel("MWh")
-        plt.xticks(rotation=45)
+def plot_storage_season(network: pypsa.Network, filename: str | None = None):
+    network.stores_t.e.groupby(network.stores_t.e.index.month).mean().div(1e3).plot()
+    plt.legend(fancybox=True, shadow=True, loc='best')
+    plt.xlabel("Month")
+    plt.ylabel("GWh")
+    plt.xticks(np.arange(1,12), np.arange(1,12))
 
     if filename is not None: save_figure(filename)
 
