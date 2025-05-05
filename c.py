@@ -4,7 +4,8 @@ import results_plotter as plot
 import numpy as np
 import matplotlib.pyplot as plt
 
-weather_years = [1980,1985,1990,1995,2000,2010,2015]
+#weather_years = [2015]
+weather_years = range(1985, 2016) # all years
 
 mixes = []
 
@@ -15,13 +16,6 @@ for w_year in weather_years:
     network = create_network(data)
     network.optimize.create_model()
 
-    #TODO : Beslut om det er med eller uden CO2 constraint
-    network.add("GlobalConstraint",
-            "co2_limit: MT",
-            type="primary_energy",
-            carrier_attribute="co2_emissions",
-            sense="<=",
-            constant=20e6)
     network.optimize()
     mix = []
     for ix, gen in enumerate(plot.REFERENCES['GENERATORS']):
@@ -30,6 +24,4 @@ for w_year in weather_years:
         mix += [network.links.p_nom_opt[link]]
     mixes += [mix]
 
-print("Mixes: ", np.array(mixes).T)
-
-plot.plot_weather_variability(mixes)
+plot.plot_weather_variability(mixes, filename="c_weather_variability.png")

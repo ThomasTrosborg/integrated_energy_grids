@@ -16,6 +16,7 @@ def create_network(data: DataLoader):
     network.add("Carrier", "onshore wind")
     network.add("Carrier", "offshore wind")
     network.add("Carrier", "solar")
+    network.add("Carrier", "biomass")
 
      # add the electricity bus
     network.add(
@@ -25,7 +26,7 @@ def create_network(data: DataLoader):
         x = data.coordinates[data.country][1],
         carrier = "AC",
     )
-
+    
     # add load to the bus
     network.add(
         "Load",

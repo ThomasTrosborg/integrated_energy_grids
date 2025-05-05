@@ -3,6 +3,17 @@ import pathlib
 import numpy as np
 import pypsa
 from typing import List
+from brokenaxes import brokenaxes
+
+import seaborn as sns
+
+sns.set_theme(style="whitegrid")
+# Set the default font size for all plots
+plt.rcParams.update({'font.size': 12})
+plt.rcParams['axes.titlesize'] = 14
+plt.rcParams['axes.labelsize'] = 12
+plt.rcParams['xtick.labelsize'] = 10
+plt.rcParams['ytick.labelsize'] = 10
 
 REFERENCES  = {'GENERATORS' : ['onshore wind', 'solar', 'OCGT'],
                'LINKS'      : ['HDAM'],
@@ -100,7 +111,9 @@ def plot_duration_curves(network, filename: str | None = None):
 
     plt.show()
 
-def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, filename: str | None = None):
+def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, system_costs, filename: str | None = None):
+    mixes = np.array(network_sols).T*1e-3 # in GW
+    
     colors = []
     labels = []
     for ix, gen in enumerate(REFERENCES['GENERATORS']):
@@ -109,21 +122,48 @@ def plot_capacity_variation_under_varying_co2_limits(network_sols, co2_limits, f
     for ix, link in enumerate(REFERENCES['LINKS']):
         colors += [COLORS['LINKS'][ix]]
         labels += [LABELS['LINKS'][ix]]
+    fig, (ax_upper, ax_lower) = plt.subplots(2, 1, sharex=True, figsize=(8, 6),
+                               gridspec_kw={'height_ratios': [0.7, 2]})
+    ax_upper.grid(False)
+    ax_lower.grid(False)
+    ax_upper.spines['bottom'].set_visible(False)
+    ax_lower.spines['top'].set_visible(False)
+    ax_upper.tick_params(labelbottom=False)
+    d = .01  # size of diagonal lines
+    kwargs = dict(transform=ax_upper.transAxes, color='k', clip_on=False)
+    ax_upper.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
+    ax_upper.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
+
+    kwargs.update(transform=ax_lower.transAxes)
+    ax_lower.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+    ax_lower.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
+
+    ax_lower.set_xlabel(r"CO2 limit (Mt CO$_2$)")
+    ax_lower.set_xticks(co2_limits, [str(int(x/1e6)) for x in co2_limits])
+
+    ylims = [[(0.9*np.max(mixes), 1.05*np.max(mixes)),  (0.9*np.max(system_costs), 1.1*np.max(system_costs))],
+             [(0, 0.25*np.max(mixes)),  (0, 0.25*np.max(system_costs))]]
+    for ix, ax in enumerate((ax_upper, ax_lower)):
+        ax2 = ax.twinx()
+        if ix == 1:
+            ax.set_ylabel('Capacity (GW)')
+            ax2.set_ylabel('System cost (M€)')
+
+        ax2.plot(co2_limits, system_costs, '--o', label='System cost', color='black')
+
+        for ix2, label in enumerate(labels):
+            ax.plot(co2_limits, mixes[ix2], '--o', label=label, color=colors[ix2])
+        
+        ax.set_ylim(ylims[ix][0])
+        ax2.set_ylim(ylims[ix][1])
     
-    mixes = np.array(network_sols).T
-    for ix, label in enumerate(labels):
-        plt.plot(co2_limits, mixes[ix], '--bo', label=label, color=colors[ix])
-    plt.xlabel(r"CO2 limit (Mt CO$_2$)")
-    plt.xticks(co2_limits, [str(int(x/1e6)) for x in co2_limits])
-    plt.ylabel(r"Capacity (MW)")
-    plt.ylim(0, 0.5 * max(mixes.flatten()))
-    plt.legend()
-    plt.title(r'Capacity mixes under emissions limitations')
+    h, l = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax_lower.legend(h + h2, l + l2, loc='best', fancybox=True)
 
     if filename is not None: save_figure(filename)
 
-    plt.show()
-
+    plt.show() 
 
 def plot_weather_variability(network_sols, filename: str = None):
     colors = []
@@ -131,28 +171,42 @@ def plot_weather_variability(network_sols, filename: str = None):
     for ix, gen in enumerate(REFERENCES['GENERATORS']):
         colors += [COLORS['GENERATORS'][ix]]
         labels += [LABELS['GENERATORS'][ix]]
-    for ix, link in enumerate(REFERENCES['LINKS']):
-        colors += [COLORS['LINKS'][ix]]
-        labels += [LABELS['LINKS'][ix]]
     mixes = np.array(network_sols)
     boxprops = dict(color='black')  # Default box properties
     medianprops = dict(color='red')  # Default median line properties
 
+    fig, ax = plt.subplots()
+
     for i, color in enumerate(colors):
-        plt.boxplot(
+        ax.boxplot(
             mixes[:, i],
             positions=[i + 1],
             patch_artist=True,
             boxprops=dict(facecolor=color, color=color),
             medianprops=medianprops,
-            label=labels[i]
+            label=labels[i],
+            showmeans=True,
+            meanprops=dict(marker='o', markerfacecolor='blue', markersize=5, markeredgecolor='black'),
         )
 
-    plt.xticks(ticks=range(1, len(labels) + 1), labels=labels)
+    mean_handle = ax.plot([], [], color="blue", marker='o', linestyle='None',
+                         markersize=8, label='Mean')
+    median_handle = ax.plot([], [], color="red", linestyle='-', label='Median')
+    # Add legend to the plot
+    
 
+    plt.xticks(ticks=range(1, len(labels) + 1), labels=labels)
+    plt.ylim(0, 1.05 * max(mixes.flatten()))
     plt.xlabel(r"Generator technology")
     plt.ylabel(r"Capacity Variation (MW)")
-    plt.legend()
+
+    handles, labels = ax.get_legend_handles_labels()
+    handles.append(mean_handle)
+    labels.append('Mean')
+    handles.append(median_handle)
+    labels.append('Median')
+
+    plt.legend(handles=handles, labels=labels, loc='best', fancybox=True, shadow=True)
     plt.title(r'Capacity mixes using different weather years')
 
     if filename is not None: save_figure(filename)
