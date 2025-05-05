@@ -16,6 +16,7 @@ def create_network(data: DataLoader):
     network.add("Carrier", "onshore wind")
     network.add("Carrier", "offshore wind")
     network.add("Carrier", "solar")
+    network.add("Carrier", "biomass")
 
      # add the electricity bus
     network.add(
@@ -25,7 +26,7 @@ def create_network(data: DataLoader):
         x = data.coordinates[data.country][1],
         carrier = "AC",
     )
-
+    
     # add load to the bus
     network.add(
         "Load",
@@ -140,7 +141,7 @@ if __name__ == "__main__":
     network = create_network(data)
     network.optimize()
 
-    plot.plot_series(network, ts=181*24) #, filename="a_series_summer.png")
-    plot.plot_series(network, ts=0) #, filename="a_series_winter.png")
-    plot.plot_electricity_mix(network) #, filename="a_electricity_mix.png")
-    plot.plot_duration_curves(network) #, filename="a_duration_curves.png")
+    plot.plot_series(network, ts=181*24, filename="a_series_summer.png")
+    plot.plot_series(network, ts=0, filename="a_series_winter.png")
+    plot.plot_electricity_mix(network, filename="a_electricity_mix.png")
+    plot.plot_duration_curves(network, filename="a_duration_curves.png")
