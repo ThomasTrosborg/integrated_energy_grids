@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import pathlib
 import numpy as np
+import pandas as pd
 import pypsa
-from typing import List
+from typing import List, Dict
 from brokenaxes import brokenaxes
 
 import seaborn as sns
@@ -214,33 +215,38 @@ def plot_weather_variability(network_sols, filename: str = None):
 
 
 def plot_storage_day(network: pypsa.Network, filename: str | None = None):
-    network.generators_t.p[REFERENCES['GENERATORS']].groupby(network.snapshots.hour).mean().plot(drawstyle="steps-post") 
+    network.generators_t.p[REFERENCES['GENERATORS']].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill().plot(drawstyle="steps-post") 
     for store in ["DamWater", "PumpedHydro", "Battery", "H2"]:
-        charge = network.links.loc[network.links['bus0'] == store].index[0]
-        discharge = (network.links.loc[network.links['bus1'] == store].index[0] if store != "DamWater" else [])
+        charge = (network.links.loc[network.links['bus1'] == store].index[0] if store != "DamWater" else [])
+        discharge = network.links.loc[network.links['bus0'] == store].index[0]
+        # plt.plot(
+        #     (- network.links_t.p1[discharge].groupby(network.snapshots.hour).mean() if store != "DamWater" else 0) - network.links_t.p0[charge].groupby(network.snapshots.hour).mean(), 
+        #     label=store,
+        # )
         plt.step(
-            x=network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().index,
-            y=(network.links_t.p1[discharge].groupby(network.snapshots.hour).mean() if store != "DamWater" else 0) - network.links_t.p0[charge].groupby(network.snapshots.hour).mean(), 
+            x=network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill().index,
+            y=(- network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill() if store != "DamWater" else 0) - network.links_t.p0[charge].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill(), 
             label=store,
             where='post',
         )
     plt.fill_between(
-        x=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().index,
-        y1=network.loads_t.p['load'].groupby(network.snapshots.hour).mean(), 
+        x=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill().index,
+        y1=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill(), 
         color='grey', 
         label='demand',
         alpha=0.5,
+        step='post',
     )
     plt.legend(fancybox=True, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.xlabel("Hour of the day")
     plt.ylabel("MW")
-    plt.xticks(np.arange(24), np.arange(24), rotation=45)
+    plt.xticks(np.arange(25), np.arange(25), rotation=45)
     plt.xlim(
         network.loads_t.p['load'].groupby(network.snapshots.hour).mean().index[0], 
         network.loads_t.p['load'].groupby(network.snapshots.hour).mean().index[-1]+1,
     )
 
-    # if filename is not None: save_figure(filename)
+    if filename is not None: save_figure(filename)
 
     plt.show()
 
@@ -248,8 +254,34 @@ def plot_storage_season(network: pypsa.Network, filename: str | None = None):
     network.stores_t.e.groupby(network.stores_t.e.index.month).mean().div(1e3).plot()
     plt.legend(fancybox=True, shadow=True, loc='best')
     plt.xlabel("Month")
-    plt.ylabel("GWh")
-    plt.xticks(np.arange(1,12), np.arange(1,12))
+    plt.ylabel("Stored energy [GWh]")
+    plt.xticks(np.arange(1,13), ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    plt.xlim(1, 12)
+
+    if filename is not None: save_figure(filename)
+
+    plt.show()
+
+def capacity_mixes_storage(networks: Dict[str, pypsa.Network], filename: str | None = None):    
+    # Create dataframe for the capacity mixes
+    gen_capacities = pd.DataFrame(index=REFERENCES['GENERATORS'])
+    objs = []
+    for (name, network) in networks.items():
+        gen_capacities[name] = network.generators.p_nom_opt[REFERENCES['GENERATORS']].values
+        objs.append(network.objective/1e6) # in million EUR
+    gen_capacities.loc["system cost"] = objs
+    gen_capacities = gen_capacities.T*1e-3 # in GW
+
+    # Plot the capacity mixes
+    for color, label in zip(COLORS['GENERATORS'], REFERENCES['GENERATORS']):
+        plt.plot(gen_capacities[label], '--o', color=color, label=label)
+    # plt.plot(gen_capacities, style='--o', color=COLORS['GENERATORS'])
+    # gen_capacities.plot(style='--o', color=COLORS['GENERATORS'], xticks=gen_capacities.index)
+    plt.ylabel("Capacity (MW)")
+    plt.xlabel("Scenario")
+    plt.xticks(np.arange(len(gen_capacities)), gen_capacities.index)
+    plt.legend()
+    plt.title('Capacity Mixes')
 
     if filename is not None: save_figure(filename)
 
@@ -268,5 +300,3 @@ def plot_co2_limit_vs_price(co2_limits: np.ndarray, co2_prices: np.ndarray, file
     if filename is not None: save_figure(filename)
 
     plt.show()
-
-

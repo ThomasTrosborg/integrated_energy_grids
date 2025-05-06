@@ -1,4 +1,5 @@
 import pypsa
+from typing import Dict
 from data_loader import DataLoader
 from a import create_network
 from b import add_co2_constraint, create_co2_limits
@@ -153,37 +154,46 @@ def add_storage(network: pypsa.Network, data: DataLoader):
     
     return network
 
-def compare_co2_limits(network: pypsa.Network, co2_limits: list):
-    networks = []
-    for co2_limit in co2_limits:
-        net = create_network(data)
-        net = add_storage(net, data)
-        # net = network.copy()
-        net = add_co2_constraint(net, co2_limit)
-        net.optimize()
-        networks.append(net)
-    
-    plot.plot_storage_season(networks) #, filename="storage_season_co2_plot.png")
+def compare_capacity_mixes(data: DataLoader, co2_limit: float, filename: str | None = None):
+    """ Compare capacity mixes with and without the CO2 constraint and storage """
+    n_base = create_network(data)
+    n_base.optimize()
+
+    n_storage = create_network(data)
+    n_storage = add_storage(n_storage, data)
+    n_storage.optimize()
+
+    n_storage_co2 = create_network(data)
+    n_storage_co2 = add_storage(n_storage_co2, data)
+    n_storage_co2 = add_co2_constraint(n_storage_co2, 0) # 0 MT CO2 limit
+    n_storage_co2.optimize()
+
+    networks = {
+        "Base": n_base,
+        "Storage": n_storage,
+        "Storage + CO2": n_storage_co2,
+    }
+    plot.capacity_mixes_storage(networks, filename)
 
 
 if __name__ == "__main__":
     data = DataLoader(country="ESP", discount_rate=0.07)
 
-    co2_limit = 50e6
+    co2_limit = 0
 
-    # Create the network
+    # # Create the network
     network = create_network(data)
     network = add_storage(network, data)
-    # network = add_co2_constraint(network, co2_limit) # 50 MT CO2 limit
+    network = add_co2_constraint(network, co2_limit)
 
-    # Optimize the network
+    # # Optimize the network
     network.optimize()
 
-    # Plot the results
-    plot.plot_storage_day(network) #, filename="d_storage_day_plot.png")
-    plot.plot_storage_season([network]) #, filename="d_storage_season_plot.png")
+    # # Plot the results
+    plot.plot_storage_day(network, filename="d_storage_day_plot.png")
+    plot.plot_storage_season(network, filename="d_storage_season_plot.png")
+    plot.plot_electricity_mix(network, filename="d_electricity_mix_plot.png")
     # plot.plot_series(network) #, filename="d_storage_plot.png")
 
-    # Compare the results with and without the CO2 constraint
-    co2_limits = create_co2_limits(n_opts=5)
-    compare_co2_limits(network, co2_limits)
+    # Compare capacity mixes with and without the CO2 constraint and storage 
+    # compare_capacity_mixes(data, co2_limit, filename="d_capacity_mix_plot.png")
