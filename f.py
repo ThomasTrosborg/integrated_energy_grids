@@ -25,10 +25,10 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
             bus0="electricity bus",
             bus1=neighbor,
             s_nom_extendable=True, # capacity is optimised
-            r=0.02, # reactance [ohm/km]
-            x=0.3, # resistance [ohm/km]
+            r=0.031, # resistance [ohm/km]
+            x=0.29, # reactance [ohm/km]
             length=length[neighbor], # length [km] between country a and country b
-            capital_cost=2000*length[neighbor], # capital cost of 2000 [EUR/(MW*km)] * length [km]
+            capital_cost=442.1414*length[neighbor], # capital cost of 2000 [EUR/(MW*km)] * length [km]
             #type = "Al/St 560/50 4-bundle 750.0", # type of line
         )
         
@@ -134,7 +134,7 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
     network.add(
         "Store",
         "DamReservoir PRT",
-        bus = "DamWater PRT",
+        bus = "PRT DamWater",
         e_nom = data.hydro_capacities["dammed_hydro_storage"].values[0],
         e_cyclic = True,
         capital_cost = 0,
@@ -159,14 +159,9 @@ if __name__ == '__main__':
     print(len(data.cf_hydro))
     print(data.cf_hydro.max())
     print(max(data.cf_hydro.values))
+    print("PRT DamWater", max(data.cf_hydro_PRT.values))
 
-
-    print(len(data.cf_hydro))
-    print(data.cf_hydro.max())
-    print(max(data.cf_hydro.values))
-
-
-    co2_limit = 50e6 # 50 MT CO2 limit
+    co2_limit = 0 # 50 MT CO2 limit
 
     # Create the network
     network = create_network(data)
@@ -180,7 +175,23 @@ if __name__ == '__main__':
     plt.show()
 
     network.generators.p_nom_opt.div(10**3).plot.barh()
+    plt.ylabel("Capacity (GW)")
     plt.show()
     plot.plot_electricity_mix(network) #, filename="f_electricity_mix.png")
+
+    network.lines_t.p0.div(1e3).plot()
+    plt.ylabel("Power (GW) - leaving Spain")
+    plt.xlabel("Time (Hourly Resolution)")
+    plt.title("Power Flow in Lines")
+    plt.legend(title="Line")
+    plt.tight_layout()
+    plt.show()  
+
+    network.lines.s_nom_opt.div(1e3).plot.barh()
+    plt.ylabel("Capacity (GW)")
+    plt.xlabel("Line")
+    plt.title("Line Capacity")
+    plt.tight_layout()
+    plt.show()  
 
     print(0)
