@@ -215,7 +215,8 @@ def plot_weather_variability(network_sols, filename: str = None):
 
 
 def plot_storage_day(network: pypsa.Network, filename: str | None = None):
-    network.generators_t.p[REFERENCES['GENERATORS']].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill().plot(drawstyle="steps-post") 
+    network.generators_t.p[REFERENCES['GENERATORS']].groupby(network.snapshots.hour).mean().div(1e3).reindex(np.arange(0,25)).ffill().plot(drawstyle="steps-post")
+    # (- network.links_t.p1["HDAM"]).groupby(network.snapshots.hour).mean().div(1e3).reindex(np.arange(0,25)).ffill().plot(drawstyle="steps-post", label="Dam Hydro")
     for store in ["DamWater", "PumpedHydro", "Battery", "H2"]:
         charge = (network.links.loc[network.links['bus1'] == store].index[0] if store != "DamWater" else [])
         discharge = network.links.loc[network.links['bus0'] == store].index[0]
@@ -224,14 +225,17 @@ def plot_storage_day(network: pypsa.Network, filename: str | None = None):
         #     label=store,
         # )
         plt.step(
-            x=network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill().index,
-            y=(- network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill() if store != "DamWater" else 0) - network.links_t.p0[charge].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill(), 
+            x=network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().div(1e3).reindex(np.arange(0,25)).ffill().index,
+            y= (
+                - network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().div(1e3).reindex(np.arange(0,25)).ffill() 
+                - (network.links_t.p0[charge].groupby(network.snapshots.hour).mean().div(1e3).reindex(np.arange(0,25)).ffill()  if store != "DamWater" else 0)
+            ), 
             label=store,
             where='post',
         )
     plt.fill_between(
-        x=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill().index,
-        y1=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill(), 
+        x=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().div(1e3).reindex(np.arange(0,25)).ffill().index,
+        y1=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().div(1e3).reindex(np.arange(0,25)).ffill(), 
         color='grey', 
         label='demand',
         alpha=0.5,
@@ -239,7 +243,7 @@ def plot_storage_day(network: pypsa.Network, filename: str | None = None):
     )
     plt.legend(fancybox=True, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.xlabel("Hour of the day")
-    plt.ylabel("MW")
+    plt.ylabel("GW")
     plt.xticks(np.arange(25), np.arange(25), rotation=45)
     plt.xlim(
         network.loads_t.p['load'].groupby(network.snapshots.hour).mean().index[0], 
@@ -277,7 +281,7 @@ def capacity_mixes_storage(networks: Dict[str, pypsa.Network], filename: str | N
         plt.plot(gen_capacities[label], '--o', color=color, label=label)
     # plt.plot(gen_capacities, style='--o', color=COLORS['GENERATORS'])
     # gen_capacities.plot(style='--o', color=COLORS['GENERATORS'], xticks=gen_capacities.index)
-    plt.ylabel("Capacity (MW)")
+    plt.ylabel("Capacity [GW]")
     plt.xlabel("Scenario")
     plt.xticks(np.arange(len(gen_capacities)), gen_capacities.index)
     plt.legend()
@@ -287,16 +291,19 @@ def capacity_mixes_storage(networks: Dict[str, pypsa.Network], filename: str | N
 
     plt.show()
 
-def plot_co2_limit_vs_price(co2_limits: np.ndarray, co2_prices: np.ndarray, filename: str | None = None):
-    plt.plot(co2_limits/1e6, co2_prices, 'bo-')
+def plot_co2_limit_vs_price(co2_limits: dict, co2_prices: dict, filename: str | None = None):
+    for label in co2_limits.keys():
+        plt.plot(co2_limits[label]/1e6, co2_prices[label], 'o-', label=label)
     # 62.54 EUR/tonCO2 in 2023 (Net Effective Carbon Rates)
     # https://www.oecd.org/content/dam/oecd/en/topics/policy-sub-issues/carbon-pricing-and-energy-taxes/carbon-pricing-spain.pdf
     plt.axhline(y=62.54, color='r', linestyle='--', label='62.54 €/ton CO$_2$')
     plt.legend(fancybox=True, shadow=True, loc='best')
     plt.xlabel(r"CO$_2$ limit [Mt CO$_2$]")
-    plt.ylabel(r"Price [€/Mton CO$_2$]")
+    plt.ylabel(r"Price [€/ton CO$_2$]")
+    plt.yscale('log')
     plt.title(r'Price vs CO$_2$ limit')
+    # plt.ylim(0, 500)
 
-    if filename is not None: save_figure(filename)
+    # if filename is not None: save_figure(filename)
 
     plt.show()

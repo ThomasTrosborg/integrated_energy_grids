@@ -196,4 +196,4 @@ if __name__ == "__main__":
     # plot.plot_series(network) #, filename="d_storage_plot.png")
 
     # Compare capacity mixes with and without the CO2 constraint and storage 
-    # compare_capacity_mixes(data, co2_limit, filename="d_capacity_mix_plot.png")
+    compare_capacity_mixes(data, co2_limit, filename="d_capacity_mix_plot.png")
