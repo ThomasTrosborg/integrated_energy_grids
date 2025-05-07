@@ -142,6 +142,8 @@ def create_non_coupled_el_and_heat_network(data:DataLoader, heat_demand_profile:
     return n
 
 if __name__ == "__main__":
+    data = DataLoader(country="ESP", discount_rate=0.07)
+
     # Load the heating demand data
     heating_demand_data, annual_space_heating, annual_hot_water = load_heating_demand_data()
     
@@ -157,27 +159,27 @@ if __name__ == "__main__":
     # Plot the heating demand profile
     plt.figure(figsize=(10, 5))
     #plt.plot(heating_demand_profile.index, heating_demand_profile.values, label='Heating Demand Profile From Temperature', alpha=0.5)
-    plt.plot(heating_demand_data.index, heating_demand_data.values, label='Heating Demand Data', alpha=0.5)
+    plt.plot(data.p_d.index, data.p_d.ESP.values, label='Electricity Data', alpha=0.5)
+    plt.plot(heating_demand_data.index, heating_demand_data.values, label='Heating Data', alpha=0.5)
     plt.xlabel('Date')
-    plt.ylabel('Heating Demand (MWh/h)')
-    plt.title('Heating Demand Profile')
+    plt.ylabel('Demand (MWh/h)')
+    plt.title("Spain's Electricity & Heating Demand Profile (2015)")
     plt.xlim(heating_demand_profile.index[0], heating_demand_profile.index[-1])
-    #plt.legend()
+    plt.legend()
     plt.grid()
     plot.save_figure("heating_demand_profile.png")
     plt.close()
-
-    data = DataLoader(country="ESP", discount_rate=0.07)
-
+    
     # Create the heat network
-    heat_network = create_non_coupled_el_and_heat_network(data, heating_demand_profile)
-    heat_network.optimize()
-    print("Combined system costs for simple heating solution: ", heat_network.objective/1e6) # in million EUR
+    isolated_sectors = create_non_coupled_el_and_heat_network(data, heating_demand_profile)
+    # isolated_sectors.optimize()
+    print("Combined system costs for simple heating solution: ", isolated_sectors.objective/1e6) # in million EUR
 
     # Create the network
-    coupled_network = couple_el_and_heat_sector(heat_network, data)
-    coupled_network.optimize()
-    print("Combined system cost for coupled heating solution: ", heat_network.objective/1e6)
+    coupled_sectors = couple_el_and_heat_sector(isolated_sectors, data)
+    coupled_sectors.optimize()
+    print("Combined system cost for coupled heating solution: ", coupled_sectors.objective/1e6)
 
-    plot.plot_series(coupled_network) #, filename="d_storage_plot.png")
-    plot.plot_storage_season([coupled_network]) #, filename="d_storage_season_plot.png")
+    plot.plot_series(coupled_sectors) #, filename="d_storage_plot.png")
+    plot.plot_storage_season([coupled_sectors]) #, filename="d_storage_season_plot.png")
+    plot.plot_generation_series(coupled_sectors, filename="g_generation_plot.png")

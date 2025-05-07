@@ -24,8 +24,6 @@ if __name__ == '__main__':
     # Optimize the network
     network.optimize()
 
-    network.generators.p_nom_opt.div(10**3).plot.barh()
-    plt.show()
     plot.plot_electricity_mix(network) #, filename="f_electricity_mix.png")
 
         # Ensure the index is a DateTimeIndex
@@ -33,31 +31,13 @@ if __name__ == '__main__':
     e.index = pd.to_datetime(e.index)
 
     # Get raw Battery timeseries (in hourly resolution), converted to GWh
-    battery = e["Battery"].div(1e3)
-
-    # Compute monthly average for other stores
-    monthly_avg = e[["H2 Storage", "PumpedHydro", "DamReservoir"]].groupby(e.index.month).mean().div(1e3)
-
-    # Create full-year hourly index matching Battery's index range
-    full_index = battery.index
-
-    # Create a DataFrame with the same index
-    monthly_hourly = pd.DataFrame(index=full_index, columns=["H2 Storage", "PumpedHydro", "DamReservoir"])
-
-    # Fill in monthly average values for each hour
-    for month in range(1, 13):
-        mask = full_index.month == month
-        monthly_hourly.loc[mask] = monthly_avg.loc[month].values
-
-    # Combine
-    combined = monthly_hourly.copy()
-    combined["Battery"] = battery
+    storage = e[["Battery","H2 Storage", "PumpedHydro", "DamReservoir"]].div(1e3)
 
     # Plot
-    combined.plot(figsize=(14, 6))
+    storage.plot(figsize=(14, 6),alpha=0.6, )
     plt.ylabel("GWh")
     plt.xlabel("Time (Hourly Resolution)")
-    plt.title("Storage Levels: Hourly Battery + Monthly Avg for Hydro and H2")
+    plt.title("Storage Levels: Battery, Hydro and H2")
     plt.legend(title="Storage Type")
     plt.tight_layout()
     plt.show()
