@@ -29,6 +29,29 @@ LABELS      = {'GENERATORS' : ['Onshore Wind', 'Solar', 'Gas (OCGT)'],
                'LOADS'      : ['Demand']
                }
 
+REFERENCES_FRA  = {'GENERATORS' : ['FRA wind', 'FRA solar', 'FRA nuke'],
+               'LOADS'      : ['FRA load']
+               }
+COLORS_FRA      = {'GENERATORS' : ['green', 'orange', 'purple'],
+               'LOADS'      : ['black']
+               }
+LABELS_FRA      = {'GENERATORS' : ['Onshore Wind', 'Solar', 'Nuclear'],
+               'LOADS'      : ['Demand France']
+               }
+
+REFERENCES_PRT  = {'GENERATORS' : ['PRT wind', 'PRT solar', 'PRT gas'],
+               'LINKS'      : ['PRT HDAM'],
+               'LOADS'      : ['PRT load']
+               }
+COLORS_PRT      = {'GENERATORS' : ['green', 'orange', 'brown'],
+               'LINKS'      : ['blue'],
+               'LOADS'      : ['black']
+               }
+LABELS_PRT      = {'GENERATORS' : ['Onshore Wind', 'Solar', 'Gas (OCGT)'],
+               'LINKS'      : ['Hydro (Dam)'],
+               'LOADS'      : ['Demand Portugal']
+               }
+
 def save_figure(filename):
     filepath = str(pathlib.Path(__file__).parent.resolve()) + "/results/" + filename
     plt.tight_layout()
@@ -75,6 +98,56 @@ def plot_electricity_mix(network, filename: str | None = None):
     plt.axis('equal')
 
     plt.title('Electricity mix')
+
+    if filename is not None: save_figure(filename)
+
+    plt.show()
+
+def plot_electricity_mix_neighbor_fra(network, filename: str | None = None):
+    # Plot the electricity mix
+    sizes = []
+    colors = []
+    labels = []
+    for ix, gen in enumerate(REFERENCES_FRA['GENERATORS']):
+        sizes += [network.generators_t.p[gen].sum()]
+        colors += [COLORS_FRA['GENERATORS'][ix]]
+        labels += [LABELS_FRA['GENERATORS'][ix]]
+
+    plt.pie(sizes,
+            colors=colors,
+            labels=labels,
+            wedgeprops={'linewidth':0},
+            autopct='%1.1f%%',)
+    plt.axis('equal')
+
+    plt.title('Electricity mix France')
+
+    if filename is not None: save_figure(filename)
+
+    plt.show()
+
+def plot_electricity_mix_neighbor_prt(network, filename: str | None = None, neighbor: str = "PRT"):
+    # Plot the electricity mix
+    sizes = []
+    colors = []
+    labels = []
+    for ix, gen in enumerate(REFERENCES_PRT['GENERATORS']):
+        sizes += [network.generators_t.p[gen].sum()]
+        colors += [COLORS_PRT['GENERATORS'][ix]]
+        labels += [LABELS_PRT['GENERATORS'][ix]]
+    for ix, link in enumerate(REFERENCES_PRT['LINKS']):
+        sizes += [-network.links_t.p1[link].sum()]
+        colors += [COLORS['LINKS'][ix]]
+        labels += [LABELS['LINKS'][ix]]
+
+    plt.pie(sizes,
+            colors=colors,
+            labels=labels,
+            wedgeprops={'linewidth':0},
+            autopct='%1.1f%%',)
+    plt.axis('equal')
+
+    plt.title('Electricity mix Portugal')
 
     if filename is not None: save_figure(filename)
 
@@ -277,7 +350,7 @@ def capacity_mixes_storage(networks: Dict[str, pypsa.Network], filename: str | N
         plt.plot(gen_capacities[label], '--o', color=color, label=label)
     # plt.plot(gen_capacities, style='--o', color=COLORS['GENERATORS'])
     # gen_capacities.plot(style='--o', color=COLORS['GENERATORS'], xticks=gen_capacities.index)
-    plt.ylabel("Capacity (MW)")
+    plt.ylabel("Capacity (GW)")
     plt.xlabel("Scenario")
     plt.xticks(np.arange(len(gen_capacities)), gen_capacities.index)
     plt.legend()
@@ -299,4 +372,79 @@ def plot_co2_limit_vs_price(co2_limits: np.ndarray, co2_prices: np.ndarray, file
 
     if filename is not None: save_figure(filename)
 
+    plt.show()
+
+
+def plot_storage_day_neighbor(network: pypsa.Network, filename: str | None = None):
+    network.generators_t.p[REFERENCES['GENERATORS']].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill().plot(drawstyle="steps-post")
+    
+    hours = np.arange(0, 25)
+
+    # Get all lines that are interconnectors (from your network to neighbors)
+    interconnector_lines = network.lines[network.lines['bus0'] == "electricity bus"]
+
+    for line_name, line_data in interconnector_lines.iterrows():
+        neighbor = line_data['bus1']
+        flows = network.lines_t.p0[line_name].groupby(network.snapshots.hour).mean()
+        flows = flows.reindex(hours).ffill()
+
+        # Split into import/export
+        import_power = flows.clip(upper=0).abs()  # Negative flow (into your network)
+        export_power = flows.clip(lower=0)        # Positive flow (out of your network)
+
+        if neighbor == "FRA":
+            color = "orange"
+        elif neighbor == "PRT":
+            color = "cyan"
+        # Plot each
+        plt.step(
+            x=hours,
+            y=import_power,
+            where='post',
+            label=f"Import from {neighbor}",
+            linestyle='--',
+            color=color,
+            alpha=0.6,
+        )
+        plt.step(
+            x=hours,
+            y=-export_power,
+            where='post',
+            label=f"Export to {neighbor}",
+            linestyle='-',
+            color=  color,
+            alpha=0.6,
+        )
+
+    for store in ["DamWater", "PumpedHydro", "Battery", "H2"]:
+        charge = (network.links.loc[network.links['bus1'] == store].index[0] if store != "DamWater" else [])
+        discharge = network.links.loc[network.links['bus0'] == store].index[0]
+        # plt.plot(
+        #     (- network.links_t.p1[discharge].groupby(network.snapshots.hour).mean() if store != "DamWater" else 0) - network.links_t.p0[charge].groupby(network.snapshots.hour).mean(), 
+        #     label=store,
+        # )
+        plt.step(
+            x=network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill().index,
+            y=(- network.links_t.p1[discharge].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill() ) - (network.links_t.p0[charge].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill() if store != "DamWater" else 0), 
+            label=store,
+            where='post',
+        )
+    
+    plt.fill_between(
+        x=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill().index,
+        y1=network.loads_t.p['load'].groupby(network.snapshots.hour).mean().reindex(np.arange(0,25)).ffill(), 
+        color='grey', 
+        label='demand',
+        alpha=0.5,
+        step='post',
+    )
+    plt.legend(fancybox=True, loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.xlabel("Hour of the day")
+    plt.ylabel("MW")
+    plt.xlim(
+        network.loads_t.p['load'].groupby(network.snapshots.hour).mean().index[0], 
+        network.loads_t.p['load'].groupby(network.snapshots.hour).mean().index[-1]+1,
+    )
+
+    if filename is not None: save_figure(filename)
     plt.show()
