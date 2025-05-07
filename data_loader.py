@@ -214,3 +214,4 @@ if __name__ == "__main__":
     print(data.cf_solar.head())
     print(data.hydro_capacities.head())
     print(data.cf_hydro.head())
+    print(data.hydro_capacities)
