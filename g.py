@@ -169,7 +169,7 @@ if __name__ == "__main__":
     plt.grid()
     plot.save_figure("heating_demand_profile.png")
     plt.close()
-    raise()
+    
     # Create the heat network
     isolated_sectors = create_non_coupled_el_and_heat_network(data, heating_demand_profile)
     # isolated_sectors.optimize()
