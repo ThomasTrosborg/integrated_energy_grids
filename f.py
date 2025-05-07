@@ -153,13 +153,15 @@ def add_neighbors(network: pypsa.Network, data: DataLoader):
 
     return network
 
-if __name__ == '__main__':
-    data = DataLoader(country="ESP", discount_rate=0.07)
+def compare_capacity_mixes(data: DataLoader, co2_limit: float, filename: str | None = None):
+    """ Compare capacity mixes with and without the CO2 constraint and storage """
+    n_base = create_network(data)
+    n_base.optimize()
 
-    print(len(data.cf_hydro))
-    print(data.cf_hydro.max())
-    print(max(data.cf_hydro.values))
-    print("PRT DamWater", max(data.cf_hydro_PRT.values))
+    n_storage_co2 = create_network(data)
+    n_storage_co2 = add_storage(n_storage_co2, data)
+    n_storage_co2 = add_co2_constraint(n_storage_co2, 0) # 0 MT CO2 limit
+    n_storage_co2.optimize()
 
     co2_limit = 0 # 50 MT CO2 limit
 
@@ -171,27 +173,68 @@ if __name__ == '__main__':
 
     # Optimize the network
     network.optimize()
-    network.plot(margin=0.4)
-    plt.show()
+
+    networks = {
+        "Base": n_base,
+        "Storage + CO2": n_storage_co2,
+        "Storage + 0 CO2 + interconnections": network,
+    }
+    plot.capacity_mixes_storage(networks, filename)
+    
+
+if __name__ == '__main__':
+    data = DataLoader(country="ESP", discount_rate=0.07)
+    
+    co2_limit = 0 # 50 MT CO2 limi
+    compare_capacity_mixes(data, co2_limit, filename="d_capacity_mix_plot.png")
+
+    print(len(data.cf_hydro))
+    print(data.cf_hydro.max())
+    print(max(data.cf_hydro.values))
+    print("PRT DamWater", max(data.cf_hydro_PRT.values))
+
+    
+
+    # Create the network
+    network = create_network(data)
+    network = add_storage(network, data)
+    network = add_co2_constraint(network, co2_limit)
+    network = add_neighbors(network, data)
+
+    # Optimize the network
+    network.optimize()
+    
+    plot.plot_storage_day_neighbor(network, filename = "storge_with_interconnectors.png")
+
+    plot.plot_electricity_mix_neighbor_fra(network, filename = "electricity_mix_neighborFRA.png")
+    plot.plot_electricity_mix_neighbor_prt(network, filename = "electricity_mix_neighbor_prt.png")
+
 
     network.generators.p_nom_opt.div(10**3).plot.barh()
-    plt.ylabel("Capacity (GW)")
+    plt.xlabel("Capacity (GW)")
     plt.show()
     plot.plot_electricity_mix(network) #, filename="f_electricity_mix.png")
+    
+    
 
-    network.lines_t.p0.div(1e3).plot()
+    network.lines_t.p0.groupby(network.lines_t.p0.index.date).mean().plot()
     plt.ylabel("Power (GW) - leaving Spain")
-    plt.xlabel("Time (Hourly Resolution)")
+    plt.xlabel("Time (Daily Resolution)")
     plt.title("Power Flow in Lines")
     plt.legend(title="Line")
     plt.tight_layout()
     plt.show()  
 
+    
+
     network.lines.s_nom_opt.div(1e3).plot.barh()
-    plt.ylabel("Capacity (GW)")
-    plt.xlabel("Line")
+    plt.xlabel("Capacity (GW)")
+    plt.ylabel("Line")
     plt.title("Line Capacity")
     plt.tight_layout()
     plt.show()  
+
+    print(network.links_t.p0)
+    print(network.generators_t.p)
 
     print(0)
